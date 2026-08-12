@@ -1,0 +1,40 @@
+rules_version = '2';
+
+// ポイント・電子マネー期限管理アプリ
+// MVPは個人利用のみ(共有機能なし)を前提とした匿名認証ベースのルール。
+// たべゴロっとチェックと同様、Firebase Anonymous Auth の UID を ownerId として利用する。
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(ownerId) {
+      return isSignedIn() && request.auth.uid == ownerId;
+    }
+
+    // --- users/{uid} ---------------------------------------------------
+    match /users/{uid} {
+      allow read, write: if isSignedIn() && request.auth.uid == uid;
+    }
+
+    // --- accounts/{accountId} ------------------------------------------
+    match /accounts/{accountId} {
+      allow read, update, delete: if isOwner(resource.data.ownerId);
+      allow create: if isOwner(request.resource.data.ownerId);
+
+      // --- accounts/{accountId}/updates/{updateId} ----------------------
+      match /updates/{updateId} {
+        allow read, write: if isOwner(get(/databases/$(database)/documents/accounts/$(accountId)).data.ownerId);
+      }
+    }
+
+    // --- outcome_events/{eventId} ---------------------------------------
+    match /outcome_events/{eventId} {
+      allow read, update, delete: if isOwner(resource.data.ownerId);
+      allow create: if isOwner(request.resource.data.ownerId);
+    }
+  }
+}
