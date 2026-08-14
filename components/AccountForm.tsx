@@ -1,15 +1,25 @@
 "use client";
 
-// 口座登録フォーム。
+// 口座登録・編集フォーム。
+// accountId が渡されると編集モードになり、既存データを読み込んで更新・削除ができる。
 // 種類を選ぶと、CATEGORY_DEFAULTS から円建てフラグ・タイプ・通知タイミングの
 // 初期値が自動で入る。ポイント・その他は円建て/非円建てをユーザーが選び直せる。
 
-import { useState, type FormEvent } from "react";
+import { useState, useEffect, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { addDoc, collection, serverTimestamp, Timestamp } from "firebase/firestore";
+import {
+  addDoc,
+  collection,
+  doc,
+  getDoc,
+  updateDoc,
+  deleteDoc,
+  serverTimestamp,
+  Timestamp,
+} from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthProvider";
-import { CATEGORY_DEFAULTS, type AccountCategory, type AccountType } from "@/types/firestore";
+import { CATEGORY_DEFAULTS, type AccountCategory, type AccountType, type AccountDoc } from "@/types/firestore";
 
 const CATEGORY_OPTIONS: { value: AccountCategory; label: string }[] = [
   { value: "electronic_money", label: "電子マネー" },
@@ -41,9 +51,10 @@ const KNOWN_SERVICE_NAMES = [
   "JALマイレージバンク",
 ];
 
-export default function AccountForm() {
+export default function AccountForm({ accountId }: { accountId?: string }) {
   const router = useRouter();
   const { uid, isLoading } = useAuth();
+  const isEditMode = Boolean(accountId);
 
   const [name, setName] = useState("");
   const [groupName, setGroupName] = useState("");
@@ -62,10 +73,59 @@ export default function AccountForm() {
     CATEGORY_DEFAULTS.electronic_money.notificationDaysBefore[1]
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isFetchingExisting, setIsFetchingExisting] = useState(isEditMode);
   const [errorMessage, setErrorMessage] = useState("");
 
   const isStampCard = category === "stamp_card";
   const isOther = category === "other";
+
+  // 編集モードの場合、既存データを読み込んでフォームに反映する
+  useEffect(() => {
+    if (!accountId) return;
+    let isCancelled = false;
+
+    async function fetchExisting() {
+      try {
+        const snap = await getDoc(doc(db, "accounts", accountId!));
+        if (isCancelled || !snap.exists()) return;
+        const data = snap.data() as AccountDoc;
+
+        setName(data.name ?? "");
+        setGroupName(data.groupName ?? "");
+        setCategory(data.category);
+        setCustomCategoryLabel(data.customCategoryLabel ?? "");
+        setIsYenBased(data.isYenBased);
+        setAccountType(data.type);
+        setBalance(
+          data.currentBalance === undefined || data.currentBalance === null
+            ? ""
+            : String(data.currentBalance)
+        );
+        setBalanceUnit(data.balanceUnit ?? "円");
+        if (data.expiryDate) {
+          const d = (data.expiryDate as Timestamp).toDate();
+          const yyyy = d.getFullYear();
+          const mm = String(d.getMonth() + 1).padStart(2, "0");
+          const dd = String(d.getDate()).padStart(2, "0");
+          setExpiryDate(`${yyyy}-${mm}-${dd}`);
+        }
+        setStorageLocationMemo(data.storageLocationMemo ?? "");
+        setFirstStageDays(data.notificationTiming?.firstStageDays ?? 90);
+        setSecondStageDays(data.notificationTiming?.secondStageDays ?? 21);
+      } catch (error) {
+        console.error(error);
+        setErrorMessage("データの読み込みに失敗しました。");
+      } finally {
+        if (!isCancelled) setIsFetchingExisting(false);
+      }
+    }
+
+    fetchExisting();
+    return () => {
+      isCancelled = true;
+    };
+  }, [accountId]);
 
   function handleCategoryChange(newCategory: AccountCategory) {
     setCategory(newCategory);
@@ -97,7 +157,7 @@ export default function AccountForm() {
     setIsSubmitting(true);
     try {
       const now = serverTimestamp();
-      await addDoc(collection(db, "accounts"), {
+      const payload = {
         ownerId: uid,
         name: name.trim(),
         groupName: groupName.trim() || null,
@@ -118,9 +178,14 @@ export default function AccountForm() {
           secondStageDays: Number(secondStageDays),
         },
         lastUpdatedAt: now,
-        createdAt: now,
         updatedAt: now,
-      });
+      };
+
+      if (isEditMode && accountId) {
+        await updateDoc(doc(db, "accounts", accountId), payload);
+      } else {
+        await addDoc(collection(db, "accounts"), { ...payload, createdAt: now });
+      }
 
       router.push("/");
     } catch (error) {
@@ -131,13 +196,29 @@ export default function AccountForm() {
     }
   }
 
-  if (isLoading) {
+  async function handleDelete() {
+    if (!accountId) return;
+    const confirmed = window.confirm(`「${name || "この口座"}」を削除します。よろしいですか?`);
+    if (!confirmed) return;
+
+    setIsDeleting(true);
+    try {
+      await deleteDoc(doc(db, "accounts", accountId));
+      router.push("/");
+    } catch (error) {
+      console.error(error);
+      setErrorMessage("削除に失敗しました。もう一度お試しください。");
+      setIsDeleting(false);
+    }
+  }
+
+  if (isLoading || isFetchingExisting) {
     return <p className="p-6 text-sm text-gray-500">読み込み中です...</p>;
   }
 
   return (
     <form onSubmit={handleSubmit} className="max-w-md mx-auto p-6 space-y-5">
-      <h1 className="text-lg font-semibold">口座を登録</h1>
+      <h1 className="text-lg font-semibold">{isEditMode ? "口座を編集" : "口座を登録"}</h1>
 
       <div>
         <label className="block text-sm font-medium mb-1">名前</label>
@@ -308,11 +389,22 @@ export default function AccountForm() {
 
       <button
         type="submit"
-        disabled={isSubmitting}
+        disabled={isSubmitting || isDeleting}
         className="w-full bg-gray-900 text-white rounded-md py-2 text-sm font-medium disabled:opacity-50"
       >
-        {isSubmitting ? "保存中..." : "登録する"}
+        {isSubmitting ? "保存中..." : isEditMode ? "更新する" : "登録する"}
       </button>
+
+      {isEditMode && (
+        <button
+          type="button"
+          onClick={handleDelete}
+          disabled={isSubmitting || isDeleting}
+          className="w-full border border-red-300 text-red-600 rounded-md py-2 text-sm font-medium disabled:opacity-50"
+        >
+          {isDeleting ? "削除中..." : "この口座を削除する"}
+        </button>
+      )}
     </form>
   );
 }

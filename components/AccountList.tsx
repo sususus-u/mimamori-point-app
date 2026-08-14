@@ -156,17 +156,19 @@ export default function AccountList() {
                 {expanded && (
                   <ul className="divide-y">
                     {items.map((acc) => (
-                      <li
-                        key={acc.id}
-                        className={`px-3 py-2 text-sm flex justify-between items-center ${
-                          isOverdueUnupdated(acc) ? "bg-amber-50" : ""
-                        }`}
-                      >
-                        <div>
-                          <p className="font-medium">{acc.name}</p>
-                          <p className="text-xs text-gray-500">{categoryLabel(acc)}</p>
-                        </div>
-                        <p>{formatBalance(acc.currentBalance, acc.balanceUnit)}</p>
+                      <li key={acc.id}>
+                        <Link
+                          href={`/accounts/${acc.id}/edit`}
+                          className={`px-3 py-2 text-sm flex justify-between items-center block ${
+                            isOverdueUnupdated(acc) ? "bg-amber-50" : ""
+                          }`}
+                        >
+                          <div>
+                            <p className="font-medium">{acc.name}</p>
+                            <p className="text-xs text-gray-500">{categoryLabel(acc)}</p>
+                          </div>
+                          <p>{formatBalance(acc.currentBalance, acc.balanceUnit)}</p>
+                        </Link>
                       </li>
                     ))}
                   </ul>
@@ -183,12 +185,17 @@ export default function AccountList() {
             <li className="px-3 py-4 text-sm text-gray-500">登録された口座がありません</li>
           )}
           {noExpiry.map((acc) => (
-            <li key={acc.id} className="px-3 py-2 text-sm flex justify-between items-center">
-              <div>
-                <p className="font-medium">{acc.name}</p>
-                <p className="text-xs text-gray-500">{categoryLabel(acc)}</p>
-              </div>
-              <p>{formatBalance(acc.currentBalance, acc.balanceUnit)}</p>
+            <li key={acc.id}>
+              <Link
+                href={`/accounts/${acc.id}/edit`}
+                className="px-3 py-2 text-sm flex justify-between items-center block"
+              >
+                <div>
+                  <p className="font-medium">{acc.name}</p>
+                  <p className="text-xs text-gray-500">{categoryLabel(acc)}</p>
+                </div>
+                <p>{formatBalance(acc.currentBalance, acc.balanceUnit)}</p>
+              </Link>
             </li>
           ))}
         </ul>
@@ -210,21 +217,23 @@ export default function AccountList() {
                       ? (acc.expiryDate as Timestamp).toDate()
                       : null;
                     return (
-                      <li
-                        key={acc.id}
-                        className={`px-3 py-2 text-sm flex justify-between items-center ${
-                          isOverdueUnupdated(acc) ? "bg-amber-50" : ""
-                        }`}
-                      >
-                        <div>
-                          <p className="font-medium">{acc.name}</p>
-                          <p className="text-xs text-gray-500">
-                            {expiry
-                              ? `${expiry.getFullYear()}年${expiry.getMonth() + 1}月期限`
-                              : "期限なし"}
-                          </p>
-                        </div>
-                        <p>{formatBalance(acc.currentBalance, acc.balanceUnit)}</p>
+                      <li key={acc.id}>
+                        <Link
+                          href={`/accounts/${acc.id}/edit`}
+                          className={`px-3 py-2 text-sm flex justify-between items-center block ${
+                            isOverdueUnupdated(acc) ? "bg-amber-50" : ""
+                          }`}
+                        >
+                          <div>
+                            <p className="font-medium">{acc.name}</p>
+                            <p className="text-xs text-gray-500">
+                              {expiry
+                                ? `${expiry.getFullYear()}年${expiry.getMonth() + 1}月期限`
+                                : "期限なし"}
+                            </p>
+                          </div>
+                          <p>{formatBalance(acc.currentBalance, acc.balanceUnit)}</p>
+                        </Link>
                       </li>
                     );
                   })}
