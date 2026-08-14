@@ -112,6 +112,12 @@ export interface AccountDoc {
   category: AccountCategory;
   /** category が "other" の場合の表示名(自由入力) */
   customCategoryLabel?: string;
+  /**
+   * 任意項目。同じサービス内で「期限あり」「期限なし」の残高が並存する場合
+   * (例:楽天ポイントの通常/期間限定)、共通のグループ名を付けることで
+   * 一覧の「サービス別」タブでまとめて表示できる。未入力の場合は口座名がそのまま使われる。
+   */
+  groupName?: string;
 
   isYenBased: boolean;
   type: AccountType;

@@ -21,11 +21,32 @@ const CATEGORY_OPTIONS: { value: AccountCategory; label: string }[] = [
   { value: "other", label: "その他" },
 ];
 
+// 手入力時、グループ名の候補として出す主要サービス名(大手のみ・随時追加可)
+// Pay系は残高・ポイントの両方が候補に出るよう、口座名の候補は別途分けて用意
+const KNOWN_SERVICE_NAMES = [
+  "PayPay",
+  "au PAY",
+  "LINE Pay",
+  "楽天ポイント",
+  "dポイント",
+  "Pontaポイント",
+  "Vポイント",
+  "WAON",
+  "nanaco",
+  "Suica",
+  "PASMO",
+  "Amazonギフト券",
+  "図書カード",
+  "ANAマイレージクラブ",
+  "JALマイレージバンク",
+];
+
 export default function AccountForm() {
   const router = useRouter();
   const { uid, isLoading } = useAuth();
 
   const [name, setName] = useState("");
+  const [groupName, setGroupName] = useState("");
   const [category, setCategory] = useState<AccountCategory>("electronic_money");
   const [customCategoryLabel, setCustomCategoryLabel] = useState("");
   const [isYenBased, setIsYenBased] = useState(CATEGORY_DEFAULTS.electronic_money.isYenBased);
@@ -79,6 +100,7 @@ export default function AccountForm() {
       await addDoc(collection(db, "accounts"), {
         ownerId: uid,
         name: name.trim(),
+        groupName: groupName.trim() || null,
         category,
         ...(isOther ? { customCategoryLabel: customCategoryLabel.trim() } : {}),
         isYenBased,
@@ -126,6 +148,26 @@ export default function AccountForm() {
           placeholder="例:PayPay残高"
           className="w-full border rounded-md px-3 py-2 text-sm"
         />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium mb-1">グループ名(任意)</label>
+        <input
+          type="text"
+          value={groupName}
+          onChange={(e) => setGroupName(e.target.value)}
+          placeholder="例:楽天ポイント"
+          list="known-service-names"
+          className="w-full border rounded-md px-3 py-2 text-sm"
+        />
+        <datalist id="known-service-names">
+          {KNOWN_SERVICE_NAMES.map((serviceName) => (
+            <option key={serviceName} value={serviceName} />
+          ))}
+        </datalist>
+        <p className="text-xs text-gray-500 mt-1">
+          サービス名だけを入れてください(例:PayPay)。「残高」「ポイント」などの区別は、上の「名前」欄の方に入れます。同じグループ名を付けておくと、一覧の「サービス別」タブでまとめて表示されます
+        </p>
       </div>
 
       <div>
