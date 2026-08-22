@@ -76,6 +76,9 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isFetchingExisting, setIsFetchingExisting] = useState(isEditMode);
   const [errorMessage, setErrorMessage] = useState("");
+  const [scanProgress, setScanProgress] = useState<{ current: number; total: number } | null>(
+    null
+  );
 
   const isStampCard = category === "stamp_card";
   const isOther = category === "other";
@@ -125,6 +128,48 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
     return () => {
       isCancelled = true;
     };
+  }, [accountId]);
+
+  // 新規登録時のみ、スクショ読み取り結果(sessionStorageのキュー)があれば事前入力する。
+  // 内訳分割(通常/期間限定など)で複数口座がある場合、1件登録するたびに次の項目へ進む。
+  useEffect(() => {
+    if (accountId) return;
+    const raw = sessionStorage.getItem("scan-prefill-queue");
+    if (!raw) return;
+    try {
+      const parsed = JSON.parse(raw) as {
+        total: number;
+        items: Array<{
+          name?: string;
+          groupName?: string;
+          category?: AccountCategory;
+          isYenBased?: boolean;
+          balance?: string | number;
+          balanceUnit?: string;
+          expiryDate?: string;
+        }>;
+      };
+      const data = parsed.items[0];
+      if (!data) return;
+
+      setScanProgress({ current: parsed.total - parsed.items.length + 1, total: parsed.total });
+
+      if (data.name) setName(data.name);
+      if (data.groupName) setGroupName(data.groupName);
+      if (data.category) {
+        setCategory(data.category);
+        const defaults = CATEGORY_DEFAULTS[data.category];
+        setAccountType(defaults.type);
+        setFirstStageDays(defaults.notificationDaysBefore[0]);
+        setSecondStageDays(defaults.notificationDaysBefore[1]);
+      }
+      if (typeof data.isYenBased === "boolean") setIsYenBased(data.isYenBased);
+      if (data.balance !== undefined && data.balance !== "") setBalance(String(data.balance));
+      if (data.balanceUnit) setBalanceUnit(data.balanceUnit);
+      if (data.expiryDate) setExpiryDate(data.expiryDate);
+    } catch (error) {
+      console.error(error);
+    }
   }, [accountId]);
 
   function handleCategoryChange(newCategory: AccountCategory) {
@@ -183,11 +228,33 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
 
       if (isEditMode && accountId) {
         await updateDoc(doc(db, "accounts", accountId), payload);
+        router.push("/");
       } else {
         await addDoc(collection(db, "accounts"), { ...payload, createdAt: now });
-      }
 
-      router.push("/");
+        // スクショ由来のキューに次の項目が残っていれば、続けてそちらを登録する
+        const raw = sessionStorage.getItem("scan-prefill-queue");
+        if (raw) {
+          try {
+            const parsed = JSON.parse(raw) as { total: number; items: unknown[] };
+            const restItems = parsed.items.slice(1);
+            if (restItems.length > 0) {
+              sessionStorage.setItem(
+                "scan-prefill-queue",
+                JSON.stringify({ total: parsed.total, items: restItems })
+              );
+              // 既に /accounts/new にいる場合、router.push だけでは再読み込みされないため
+              // 画面を確実に作り直すよう window.location で遷移する
+              window.location.href = "/accounts/new";
+              return;
+            }
+            sessionStorage.removeItem("scan-prefill-queue");
+          } catch {
+            sessionStorage.removeItem("scan-prefill-queue");
+          }
+        }
+        router.push("/");
+      }
     } catch (error) {
       console.error(error);
       setErrorMessage("保存に失敗しました。もう一度お試しください。");
@@ -219,6 +286,13 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
   return (
     <form onSubmit={handleSubmit} className="max-w-md mx-auto p-6 space-y-5">
       <h1 className="text-lg font-semibold">{isEditMode ? "口座を編集" : "口座を登録"}</h1>
+
+      {scanProgress && scanProgress.total > 1 && (
+        <p className="text-sm bg-blue-50 text-blue-700 rounded-md px-3 py-2">
+          📷 スクショから{scanProgress.total}件を検出しました。{scanProgress.current}件目/
+          {scanProgress.total}件目の内容を確認して登録してください。
+        </p>
+      )}
 
       <div>
         <label className="block text-sm font-medium mb-1">名前</label>
