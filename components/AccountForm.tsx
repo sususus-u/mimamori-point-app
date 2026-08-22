@@ -7,6 +7,7 @@
 
 import { useState, useEffect, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { Camera } from "lucide-react";
 import {
   addDoc,
   collection,
@@ -288,9 +289,12 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
       <h1 className="text-lg font-semibold">{isEditMode ? "口座を編集" : "口座を登録"}</h1>
 
       {scanProgress && scanProgress.total > 1 && (
-        <p className="text-sm bg-blue-50 text-blue-700 rounded-md px-3 py-2">
-          📷 スクショから{scanProgress.total}件を検出しました。{scanProgress.current}件目/
-          {scanProgress.total}件目の内容を確認して登録してください。
+        <p className="text-sm bg-blue-50 text-blue-700 rounded-md px-3 py-2 flex items-start gap-1.5">
+          <Camera size={16} className="shrink-0 mt-0.5" />
+          <span>
+            スクショから{scanProgress.total}件を検出しました。{scanProgress.current}件目/
+            {scanProgress.total}件目の内容を確認して登録してください。
+          </span>
         </p>
       )}
 

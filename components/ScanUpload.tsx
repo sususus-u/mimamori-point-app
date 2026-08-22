@@ -6,6 +6,7 @@
 
 import { useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
+import { Lightbulb } from "lucide-react";
 import {
   collection,
   query,
@@ -151,8 +152,9 @@ export default function ScanUpload() {
       <p className="text-sm text-gray-500">
         残高・期限が写ったスクリーンショットを選んでください。同じ名前の口座がすでにあれば自動で更新し、初めてのサービスなら内容確認画面に進みます。
       </p>
-      <p className="text-xs text-gray-400">
-        💡 バーコード決済画面はスクショできないことがあります。ポイント残高だけの画面に移動してから撮影すると成功しやすいです
+      <p className="text-xs text-gray-400 flex items-center gap-1">
+        <Lightbulb size={12} className="shrink-0" />
+        バーコード決済画面はスクショできないことがあります。ポイント残高だけの画面に移動してから撮影すると成功しやすいです
       </p>
 
       <input

@@ -7,6 +7,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { Camera, Zap, Plus } from "lucide-react";
 import { collection, query, where, onSnapshot, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthProvider";
@@ -104,21 +105,21 @@ export default function AccountList() {
         <div className="flex gap-2">
           <Link
             href="/accounts/quick-update"
-            className="text-sm border border-gray-300 rounded-md px-3 py-1.5"
+            className="text-sm border border-gray-300 rounded-md px-3 py-1.5 flex items-center gap-1"
           >
-            ⚡ クイック更新
+            <Zap size={14} /> クイック更新
           </Link>
           <Link
             href="/accounts/scan"
-            className="text-sm border border-gray-300 rounded-md px-3 py-1.5"
+            className="text-sm border border-gray-300 rounded-md px-3 py-1.5 flex items-center gap-1"
           >
-            📷 スクショ
+            <Camera size={14} /> スクショ
           </Link>
           <Link
             href="/accounts/new"
-            className="text-sm bg-gray-900 text-white rounded-md px-3 py-1.5"
+            className="text-sm bg-gray-900 text-white rounded-md px-3 py-1.5 flex items-center gap-1"
           >
-            + 登録
+            <Plus size={14} /> 登録
           </Link>
         </div>
       </div>

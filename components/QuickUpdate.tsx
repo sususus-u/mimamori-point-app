@@ -6,6 +6,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { Lightbulb } from "lucide-react";
 import {
   collection,
   query,
@@ -135,8 +136,9 @@ export default function QuickUpdate() {
           </Link>
         </div>
         <p className="text-sm text-gray-500">更新するサービスを選んでください</p>
-        <p className="text-xs text-gray-400">
-          💡 スマホの画面分割機能を使うと、サービスのアプリと見比べながら入力できて便利です
+        <p className="text-xs text-gray-400 flex items-center gap-1">
+          <Lightbulb size={12} className="shrink-0" />
+          スマホの画面分割機能を使うと、サービスのアプリと見比べながら入力できて便利です
         </p>
 
         {savedMessage && <p className="text-sm text-green-700">{savedMessage}</p>}

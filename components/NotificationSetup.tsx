@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Bell } from "lucide-react";
 import { useAuth } from "@/contexts/AuthProvider";
 import { enableNotifications, listenForForegroundMessages } from "@/lib/messaging";
 
@@ -38,9 +39,9 @@ export default function NotificationSetup() {
       <button
         onClick={handleClick}
         disabled={status === "loading"}
-        className="text-xs border border-gray-300 rounded-md px-2 py-1 disabled:opacity-50"
+        className="text-xs border border-gray-300 rounded-md px-2 py-1 disabled:opacity-50 flex items-center gap-1"
       >
-        {status === "loading" ? "設定中..." : "🔔 通知を有効にする"}
+        <Bell size={12} /> {status === "loading" ? "設定中..." : "通知を有効にする"}
       </button>
       {status === "error" && <p className="text-xs text-red-600 mt-1">{errorReason}</p>}
     </div>
