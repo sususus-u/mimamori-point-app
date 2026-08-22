@@ -11,6 +11,7 @@ import { collection, query, where, onSnapshot, Timestamp } from "firebase/firest
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthProvider";
 import { CATEGORY_DEFAULTS, type AccountCategory, type AccountDoc } from "@/types/firestore";
+import NotificationSetup from "@/components/NotificationSetup";
 
 interface AccountWithId extends AccountDoc {
   id: string;
@@ -100,12 +101,30 @@ export default function AccountList() {
     <div className="max-w-md mx-auto p-6">
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-lg font-semibold">口座一覧</h1>
-        <Link
-          href="/accounts/new"
-          className="text-sm bg-gray-900 text-white rounded-md px-3 py-1.5"
-        >
-          + 登録
-        </Link>
+        <div className="flex gap-2">
+          <Link
+            href="/accounts/quick-update"
+            className="text-sm border border-gray-300 rounded-md px-3 py-1.5"
+          >
+            ⚡ クイック更新
+          </Link>
+          <Link
+            href="/accounts/scan"
+            className="text-sm border border-gray-300 rounded-md px-3 py-1.5"
+          >
+            📷 スクショ
+          </Link>
+          <Link
+            href="/accounts/new"
+            className="text-sm bg-gray-900 text-white rounded-md px-3 py-1.5"
+          >
+            + 登録
+          </Link>
+        </div>
+      </div>
+
+      <div className="mb-4">
+        <NotificationSetup />
       </div>
 
       <div className="flex gap-2 mb-4 border-b">

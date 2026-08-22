@@ -98,6 +98,8 @@ export interface UserDoc {
   notificationDefaults?: Partial<
     Record<AccountCategory, { firstStageDays: number; secondStageDays: number }>
   >;
+  /** プッシュ通知の送信先トークン(複数端末に対応するため配列) */
+  fcmTokens?: string[];
 }
 
 // ---------------------------------------------------------------------------
@@ -140,6 +142,13 @@ export interface AccountDoc {
 
   /** この口座を最後にスクショ/写真で更新した日時。期限切れ未更新の検知に使用 */
   lastUpdatedAt: Timestamp;
+
+  /**
+   * 重複送信防止用。「どの期限日に対して、どの段階の通知を送ったか」をISO日付文字列(YYYY-MM-DD)で記録する。
+   * 期限日が更新される(撮り直し等)と自然にリセットされ、新しい期限に対して再び通知される。
+   */
+  notifiedFirstStageForDate?: string | null;
+  notifiedSecondStageForDate?: string | null;
 
   createdAt: Timestamp;
   updatedAt: Timestamp;
