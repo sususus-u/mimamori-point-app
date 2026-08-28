@@ -144,6 +144,7 @@ button {
 }
 
 .btn-danger {
+  width: 100%;
   flex: 1;
   background: #fff;
   color: #b3261e;

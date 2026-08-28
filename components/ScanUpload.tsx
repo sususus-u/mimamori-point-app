@@ -147,35 +147,32 @@ export default function ScanUpload() {
   }
 
   return (
-    <div className="max-w-md mx-auto p-6 space-y-4">
-      <h1 className="text-lg font-semibold">スクショで登録・更新</h1>
-      <p className="text-sm text-gray-500">
+    <div>
+      <p style={{ fontSize: 13, color: "#999" }}>
         残高・期限が写ったスクリーンショットを選んでください。同じ名前の口座がすでにあれば自動で更新し、初めてのサービスなら内容確認画面に進みます。
       </p>
-      <p className="text-xs text-gray-400 flex items-center gap-1">
-        <Lightbulb size={12} className="shrink-0" />
+      <p style={{ fontSize: 13, color: "#999", display: "flex", alignItems: "flex-start", gap: 4, marginTop: 8 }}>
+        <Lightbulb size={14} style={{ flexShrink: 0, marginTop: 1 }} />
         バーコード決済画面はスクショできないことがあります。ポイント残高だけの画面に移動してから撮影すると成功しやすいです
       </p>
 
-      <input
-        type="file"
-        accept="image/*"
-        onChange={handleFileChange}
-        disabled={isProcessing}
-        className="w-full text-sm"
-      />
+      <div className="field" style={{ marginTop: 20 }}>
+        <input type="file" accept="image/*" onChange={handleFileChange} disabled={isProcessing} />
+      </div>
 
       {previewUrl && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={previewUrl}
-          alt="選択した画像のプレビュー"
-          className="rounded-md border max-h-64 object-contain"
-        />
+        <div className="card" style={{ padding: 8, marginBottom: 20 }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={previewUrl}
+            alt="選択した画像のプレビュー"
+            style={{ width: "100%", maxHeight: 256, objectFit: "contain", borderRadius: 10 }}
+          />
+        </div>
       )}
 
-      {statusMessage && <p className="text-sm text-gray-600">{statusMessage}</p>}
-      {errorMessage && <p className="text-sm text-red-600">{errorMessage}</p>}
+      {statusMessage && <p style={{ fontSize: 13, color: "#999" }}>{statusMessage}</p>}
+      {errorMessage && <p style={{ fontSize: 13, color: "#b3261e" }}>{errorMessage}</p>}
     </div>
   );
 }

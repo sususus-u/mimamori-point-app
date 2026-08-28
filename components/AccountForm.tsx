@@ -80,6 +80,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
   const [scanProgress, setScanProgress] = useState<{ current: number; total: number } | null>(
     null
   );
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const isStampCard = category === "stamp_card";
   const isOther = category === "other";
@@ -266,8 +267,6 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
 
   async function handleDelete() {
     if (!accountId) return;
-    const confirmed = window.confirm(`「${name || "この口座"}」を削除します。よろしいですか?`);
-    if (!confirmed) return;
 
     setIsDeleting(true);
     try {
@@ -277,212 +276,216 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
       console.error(error);
       setErrorMessage("削除に失敗しました。もう一度お試しください。");
       setIsDeleting(false);
+      setShowDeleteModal(false);
     }
   }
 
   if (isLoading || isFetchingExisting) {
-    return <p className="p-6 text-sm text-gray-500">読み込み中です...</p>;
+    return <p style={{ fontSize: 14, color: "#999" }}>読み込み中です...</p>;
   }
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-md mx-auto p-6 space-y-5">
-      <h1 className="text-lg font-semibold">{isEditMode ? "口座を編集" : "口座を登録"}</h1>
+    <>
+      <form onSubmit={handleSubmit}>
+        {scanProgress && scanProgress.total > 1 && (
+          <div
+            className="card"
+            style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 14, marginBottom: 20 }}
+          >
+            <Camera size={16} style={{ flexShrink: 0, marginTop: 2, color: "var(--brand)" }} />
+            <span>
+              スクショから{scanProgress.total}件を検出しました。{scanProgress.current}件目/
+              {scanProgress.total}件目の内容を確認して登録してください。
+            </span>
+          </div>
+        )}
 
-      {scanProgress && scanProgress.total > 1 && (
-        <p className="text-sm bg-blue-50 text-blue-700 rounded-md px-3 py-2 flex items-start gap-1.5">
-          <Camera size={16} className="shrink-0 mt-0.5" />
-          <span>
-            スクショから{scanProgress.total}件を検出しました。{scanProgress.current}件目/
-            {scanProgress.total}件目の内容を確認して登録してください。
-          </span>
-        </p>
-      )}
-
-      <div>
-        <label className="block text-sm font-medium mb-1">名前</label>
-        <input
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="例:PayPay残高"
-          className="w-full border rounded-md px-3 py-2 text-sm"
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium mb-1">グループ名(任意)</label>
-        <input
-          type="text"
-          value={groupName}
-          onChange={(e) => setGroupName(e.target.value)}
-          placeholder="例:楽天ポイント"
-          list="known-service-names"
-          className="w-full border rounded-md px-3 py-2 text-sm"
-        />
-        <datalist id="known-service-names">
-          {KNOWN_SERVICE_NAMES.map((serviceName) => (
-            <option key={serviceName} value={serviceName} />
-          ))}
-        </datalist>
-        <p className="text-xs text-gray-500 mt-1">
-          サービス名だけを入れてください(例:PayPay)。「残高」「ポイント」などの区別は、上の「名前」欄の方に入れます。同じグループ名を付けておくと、一覧の「サービス別」タブでまとめて表示されます
-        </p>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium mb-1">種類</label>
-        <select
-          value={category}
-          onChange={(e) => handleCategoryChange(e.target.value as AccountCategory)}
-          className="w-full border rounded-md px-3 py-2 text-sm bg-white"
-        >
-          {CATEGORY_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {isOther && (
-        <div>
-          <label className="block text-sm font-medium mb-1">種類の名前(自由入力)</label>
+        <div className="field">
+          <label>名前</label>
           <input
             type="text"
-            value={customCategoryLabel}
-            onChange={(e) => setCustomCategoryLabel(e.target.value)}
-            placeholder="例:友達との貸し借り"
-            className="w-full border rounded-md px-3 py-2 text-sm"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="例:PayPay残高"
           />
         </div>
-      )}
 
-      {(category === "points" || isOther) && (
-        <div>
-          <label className="block text-sm font-medium mb-1">円建て/非円建て</label>
-          <div className="flex gap-4 text-sm">
-            <label className="flex items-center gap-1">
-              <input type="radio" checked={isYenBased} onChange={() => setIsYenBased(true)} />
-              円建て(1pt=1円など)
-            </label>
-            <label className="flex items-center gap-1">
-              <input type="radio" checked={!isYenBased} onChange={() => setIsYenBased(false)} />
-              非円建て(マイル等、変動あり)
-            </label>
-          </div>
+        <div className="field">
+          <label>グループ名(任意)</label>
+          <input
+            type="text"
+            value={groupName}
+            onChange={(e) => setGroupName(e.target.value)}
+            placeholder="例:楽天ポイント"
+            list="known-service-names"
+          />
+          <datalist id="known-service-names">
+            {KNOWN_SERVICE_NAMES.map((serviceName) => (
+              <option key={serviceName} value={serviceName} />
+            ))}
+          </datalist>
+          <p style={{ fontSize: 13, color: "#999", marginTop: 6 }}>
+            サービス名だけを入れてください(例:PayPay)。「残高」「ポイント」などの区別は、上の「名前」欄の方に入れます。同じグループ名を付けておくと、一覧の「サービス別」タブでまとめて表示されます
+          </p>
         </div>
-      )}
 
-      {isOther && (
-        <div>
-          <label className="block text-sm font-medium mb-1">タイプ</label>
-          <div className="flex gap-4 text-sm">
-            <label className="flex items-center gap-1">
-              <input
-                type="radio"
-                checked={accountType === "finite"}
-                onChange={() => setAccountType("finite")}
-              />
-              完結型(使いきる/失効する)
-            </label>
-            <label className="flex items-center gap-1">
-              <input
-                type="radio"
-                checked={accountType === "continuous"}
-                onChange={() => setAccountType("continuous")}
-              />
-              継続型(残高が増減し続ける)
-            </label>
-          </div>
+        <div className="field">
+          <label>種類</label>
+          <select value={category} onChange={(e) => handleCategoryChange(e.target.value as AccountCategory)}>
+            {CATEGORY_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
         </div>
-      )}
 
-      {!isStampCard && (
-        <div className="flex gap-3">
-          <div className="flex-1">
-            <label className="block text-sm font-medium mb-1">残高</label>
-            <input
-              type="number"
-              value={balance}
-              onChange={(e) => setBalance(e.target.value)}
-              className="w-full border rounded-md px-3 py-2 text-sm"
-            />
-          </div>
-          <div className="w-24">
-            <label className="block text-sm font-medium mb-1">単位</label>
+        {isOther && (
+          <div className="field">
+            <label>種類の名前(自由入力)</label>
             <input
               type="text"
-              value={balanceUnit}
-              onChange={(e) => setBalanceUnit(e.target.value)}
-              placeholder="円/pt/マイル"
-              className="w-full border rounded-md px-3 py-2 text-sm"
+              value={customCategoryLabel}
+              onChange={(e) => setCustomCategoryLabel(e.target.value)}
+              placeholder="例:友達との貸し借り"
             />
+          </div>
+        )}
+
+        {(category === "points" || isOther) && (
+          <div style={{ marginBottom: 20 }}>
+            <label style={{ display: "block", fontSize: 13, fontWeight: 500, marginBottom: 6, color: "#555" }}>
+              円建て/非円建て
+            </label>
+            <div style={{ display: "flex", gap: 16, fontSize: 14 }}>
+              <label style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                <input type="radio" checked={isYenBased} onChange={() => setIsYenBased(true)} />
+                円建て(1pt=1円など)
+              </label>
+              <label style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                <input type="radio" checked={!isYenBased} onChange={() => setIsYenBased(false)} />
+                非円建て(マイル等、変動あり)
+              </label>
+            </div>
+          </div>
+        )}
+
+        {isOther && (
+          <div style={{ marginBottom: 20 }}>
+            <label style={{ display: "block", fontSize: 13, fontWeight: 500, marginBottom: 6, color: "#555" }}>
+              タイプ
+            </label>
+            <div style={{ display: "flex", gap: 16, fontSize: 14 }}>
+              <label style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                <input
+                  type="radio"
+                  checked={accountType === "finite"}
+                  onChange={() => setAccountType("finite")}
+                />
+                完結型(使いきる/失効する)
+              </label>
+              <label style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                <input
+                  type="radio"
+                  checked={accountType === "continuous"}
+                  onChange={() => setAccountType("continuous")}
+                />
+                継続型(残高が増減し続ける)
+              </label>
+            </div>
+          </div>
+        )}
+
+        {!isStampCard && (
+          <div style={{ display: "flex", gap: 12 }}>
+            <div className="field" style={{ flex: 1 }}>
+              <label>残高</label>
+              <input type="number" value={balance} onChange={(e) => setBalance(e.target.value)} />
+            </div>
+            <div className="field" style={{ width: 96 }}>
+              <label>単位</label>
+              <input
+                type="text"
+                value={balanceUnit}
+                onChange={(e) => setBalanceUnit(e.target.value)}
+                placeholder="円/pt/マイル"
+              />
+            </div>
+          </div>
+        )}
+
+        <div className="field">
+          <label>有効期限(任意)</label>
+          <input type="date" value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)} />
+          <p style={{ fontSize: 13, color: "#999", marginTop: 6 }}>
+            空欄の場合は「期限なし・貯蓄枠」として扱われます
+          </p>
+        </div>
+
+        <div className="field">
+          <label>保管場所メモ(任意)</label>
+          <input
+            type="text"
+            value={storageLocationMemo}
+            onChange={(e) => setStorageLocationMemo(e.target.value)}
+            placeholder="例:財布/車/引き出し"
+          />
+        </div>
+
+        <div className="field">
+          <label>通知タイミング</label>
+          <div style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 14 }}>
+            <input
+              type="number"
+              value={firstStageDays}
+              onChange={(e) => setFirstStageDays(Number(e.target.value))}
+              style={{ width: 72 }}
+            />
+            日前 /
+            <input
+              type="number"
+              value={secondStageDays}
+              onChange={(e) => setSecondStageDays(Number(e.target.value))}
+              style={{ width: 72 }}
+            />
+            日前
+          </div>
+        </div>
+
+        {errorMessage && <p style={{ fontSize: 13, color: "#b3261e", marginBottom: 20 }}>{errorMessage}</p>}
+
+        <button type="submit" disabled={isSubmitting || isDeleting} className="btn-primary">
+          {isSubmitting ? "保存中..." : isEditMode ? "更新する" : "登録する"}
+        </button>
+
+        {isEditMode && (
+          <button
+            type="button"
+            onClick={() => setShowDeleteModal(true)}
+            disabled={isSubmitting || isDeleting}
+            className="btn-danger"
+            style={{ marginTop: 12 }}
+          >
+            この口座を削除する
+          </button>
+        )}
+      </form>
+
+      {showDeleteModal && (
+        <div className="modal-backdrop">
+          <div className="modal-sheet">
+            <p>「{name || "この口座"}」を削除します。よろしいですか?</p>
+            <div className="modal-actions">
+              <button className="btn-danger" onClick={handleDelete} disabled={isDeleting}>
+                {isDeleting ? "削除中..." : "削除する"}
+              </button>
+              <button className="btn-ghost" onClick={() => setShowDeleteModal(false)} disabled={isDeleting}>
+                キャンセル
+              </button>
+            </div>
           </div>
         </div>
       )}
-
-      <div>
-        <label className="block text-sm font-medium mb-1">有効期限(任意)</label>
-        <input
-          type="date"
-          value={expiryDate}
-          onChange={(e) => setExpiryDate(e.target.value)}
-          className="w-full border rounded-md px-3 py-2 text-sm"
-        />
-        <p className="text-xs text-gray-500 mt-1">空欄の場合は「期限なし・貯蓄枠」として扱われます</p>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium mb-1">保管場所メモ(任意)</label>
-        <input
-          type="text"
-          value={storageLocationMemo}
-          onChange={(e) => setStorageLocationMemo(e.target.value)}
-          placeholder="例:財布/車/引き出し"
-          className="w-full border rounded-md px-3 py-2 text-sm"
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium mb-1">通知タイミング</label>
-        <div className="flex gap-3 items-center text-sm">
-          <input
-            type="number"
-            value={firstStageDays}
-            onChange={(e) => setFirstStageDays(Number(e.target.value))}
-            className="w-20 border rounded-md px-2 py-1"
-          />
-          日前 /
-          <input
-            type="number"
-            value={secondStageDays}
-            onChange={(e) => setSecondStageDays(Number(e.target.value))}
-            className="w-20 border rounded-md px-2 py-1"
-          />
-          日前
-        </div>
-      </div>
-
-      {errorMessage && <p className="text-sm text-red-600">{errorMessage}</p>}
-
-      <button
-        type="submit"
-        disabled={isSubmitting || isDeleting}
-        className="w-full bg-gray-900 text-white rounded-md py-2 text-sm font-medium disabled:opacity-50"
-      >
-        {isSubmitting ? "保存中..." : isEditMode ? "更新する" : "登録する"}
-      </button>
-
-      {isEditMode && (
-        <button
-          type="button"
-          onClick={handleDelete}
-          disabled={isSubmitting || isDeleting}
-          className="w-full border border-red-300 text-red-600 rounded-md py-2 text-sm font-medium disabled:opacity-50"
-        >
-          {isDeleting ? "削除中..." : "この口座を削除する"}
-        </button>
-      )}
-    </form>
+    </>
   );
 }
