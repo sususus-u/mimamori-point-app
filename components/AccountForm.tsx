@@ -7,6 +7,7 @@
 
 import { useState, useEffect, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Camera } from "lucide-react";
 import {
   addDoc,
@@ -287,6 +288,13 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
   return (
     <>
       <form onSubmit={handleSubmit}>
+        {!isEditMode && (
+          <Link href="/accounts/scan" className="cta-scan">
+            <Camera size={18} />
+            <span>スクショで登録する</span>
+          </Link>
+        )}
+
         {scanProgress && scanProgress.total > 1 && (
           <div
             className="card"
