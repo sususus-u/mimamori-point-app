@@ -6,14 +6,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { List, Plus, Clock } from "lucide-react";
+import { List, Plus, Menu } from "lucide-react";
 
 const SCREEN_TITLES: Record<string, string> = {
   "/": "口座一覧",
   "/accounts/new": "口座を登録",
   "/accounts/scan": "スクショで登録",
   "/accounts/quick-update": "クイック更新",
-  "/coming-soon": "準備中",
+  "/menu": "メニュー",
+  "/reports": "実績",
 };
 
 function getTitle(pathname: string): string {
@@ -34,10 +35,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       active: pathname.startsWith("/accounts/") && pathname !== "/accounts/quick-update",
     },
     {
-      href: "/coming-soon",
-      label: "準備中",
-      icon: Clock,
-      active: pathname === "/coming-soon",
+      href: "/menu",
+      label: "メニュー",
+      icon: Menu,
+      active: pathname === "/menu" || pathname === "/reports",
     },
   ];
 

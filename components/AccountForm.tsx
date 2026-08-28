@@ -21,7 +21,13 @@ import {
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthProvider";
-import { CATEGORY_DEFAULTS, type AccountCategory, type AccountType, type AccountDoc } from "@/types/firestore";
+import {
+  CATEGORY_DEFAULTS,
+  type AccountCategory,
+  type AccountType,
+  type AccountDoc,
+  type OutcomeEventType,
+} from "@/types/firestore";
 
 const CATEGORY_OPTIONS: { value: AccountCategory; label: string }[] = [
   { value: "electronic_money", label: "電子マネー" },
@@ -82,6 +88,8 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
     null
   );
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [pendingOutcome, setPendingOutcome] = useState<OutcomeEventType | null>(null);
+  const [isRecordingOutcome, setIsRecordingOutcome] = useState(false);
 
   const isStampCard = category === "stamp_card";
   const isOther = category === "other";
@@ -229,11 +237,21 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
         updatedAt: now,
       };
 
+      const updateRecord = {
+        recordedAt: now,
+        balance: balance === "" ? null : Number(balance),
+        expiryDate: expiryDate ? Timestamp.fromDate(new Date(expiryDate)) : null,
+        source: "manual" as const,
+        confirmedByUser: true,
+      };
+
       if (isEditMode && accountId) {
         await updateDoc(doc(db, "accounts", accountId), payload);
+        await addDoc(collection(db, "accounts", accountId, "updates"), updateRecord);
         router.push("/");
       } else {
-        await addDoc(collection(db, "accounts"), { ...payload, createdAt: now });
+        const docRef = await addDoc(collection(db, "accounts"), { ...payload, createdAt: now });
+        await addDoc(collection(db, "accounts", docRef.id, "updates"), updateRecord);
 
         // スクショ由来のキューに次の項目が残っていれば、続けてそちらを登録する
         const raw = sessionStorage.getItem("scan-prefill-queue");
@@ -278,6 +296,32 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
       setErrorMessage("削除に失敗しました。もう一度お試しください。");
       setIsDeleting(false);
       setShowDeleteModal(false);
+    }
+  }
+
+  async function handleOutcome(eventType: OutcomeEventType) {
+    if (!accountId || !uid) return;
+
+    setIsRecordingOutcome(true);
+    try {
+      await addDoc(collection(db, "outcome_events"), {
+        ownerId: uid,
+        accountId,
+        accountName: name,
+        category,
+        eventType,
+        eventDate: serverTimestamp(),
+        ...(isYenBased && balance !== "" ? { amount: Number(balance) } : {}),
+        isYenBased,
+        createdAt: serverTimestamp(),
+      });
+      await deleteDoc(doc(db, "accounts", accountId));
+      router.push("/");
+    } catch (error) {
+      console.error(error);
+      setErrorMessage("記録に失敗しました。もう一度お試しください。");
+      setIsRecordingOutcome(false);
+      setPendingOutcome(null);
     }
   }
 
@@ -466,6 +510,27 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
           {isSubmitting ? "保存中..." : isEditMode ? "更新する" : "登録する"}
         </button>
 
+        {isEditMode && accountType === "finite" && (
+          <div className="action-row" style={{ marginTop: 12 }}>
+            <button
+              type="button"
+              onClick={() => setPendingOutcome("used_up")}
+              disabled={isSubmitting || isDeleting}
+              className="btn-outline"
+            >
+              使いきった
+            </button>
+            <button
+              type="button"
+              onClick={() => setPendingOutcome("expired")}
+              disabled={isSubmitting || isDeleting}
+              className="btn-outline-warm"
+            >
+              失効した
+            </button>
+          </div>
+        )}
+
         {isEditMode && (
           <button
             type="button"
@@ -488,6 +553,32 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
                 {isDeleting ? "削除中..." : "削除する"}
               </button>
               <button className="btn-ghost" onClick={() => setShowDeleteModal(false)} disabled={isDeleting}>
+                キャンセル
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {pendingOutcome && (
+        <div className="modal-backdrop">
+          <div className="modal-sheet">
+            <p>
+              「{name || "この口座"}」を{pendingOutcome === "used_up" ? "使いきった" : "失効した"}記録を残します。よろしいですか?
+            </p>
+            <div className="modal-actions">
+              <button
+                className={pendingOutcome === "used_up" ? "btn-outline" : "btn-outline-warm"}
+                onClick={() => handleOutcome(pendingOutcome)}
+                disabled={isRecordingOutcome}
+              >
+                {isRecordingOutcome ? "記録中..." : "記録する"}
+              </button>
+              <button
+                className="btn-ghost"
+                onClick={() => setPendingOutcome(null)}
+                disabled={isRecordingOutcome}
+              >
                 キャンセル
               </button>
             </div>

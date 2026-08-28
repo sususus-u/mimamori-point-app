@@ -143,6 +143,17 @@ button {
   font-weight: 500;
 }
 
+.btn-outline-warm {
+  flex: 1;
+  background: #fff;
+  color: #b56a1e;
+  border: 1px solid #b56a1e;
+  border-radius: var(--radius-pill);
+  padding: 12px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
 .btn-danger {
   width: 100%;
   flex: 1;
