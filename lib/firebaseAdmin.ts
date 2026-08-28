@@ -20,6 +20,17 @@ function getAdminApp(): App {
   });
 }
 
-export const adminApp = getAdminApp();
-export const adminDb = getFirestore(adminApp);
-export const adminMessaging = getMessaging(adminApp);
+// ビルド時のページデータ収集でこのモジュールがimportされるだけで例外にならないよう、
+// 実際にリクエストが来て使われるまでadmin appの初期化を遅延させる。
+function lazy<T extends object>(factory: () => T): T {
+  let instance: T | undefined;
+  return new Proxy({} as T, {
+    get(_target, prop, receiver) {
+      if (!instance) instance = factory();
+      return Reflect.get(instance as object, prop, receiver);
+    },
+  });
+}
+
+export const adminDb = lazy(() => getFirestore(getAdminApp()));
+export const adminMessaging = lazy(() => getMessaging(getAdminApp()));

@@ -1,13 +1,14 @@
 "use client";
 
-// 口座一覧。
+// 口座一覧。AppShellの中に表示される想定(独自のヘッダーは持たない)。
 // 「期限あり」タブは期限月ごとにグルーピングし、直近3ヶ月は展開・それ以降は折りたたむ。
-// 「期限なし」タブは貯蓄枠として別扱い。
-// 継続型で期限を過ぎても更新されていない口座は、行の背景色を変えてさりげなく目立たせる。
+// 「期限なし」タブは貯蓄枠として別扱い。「サービス別」タブはグループ名でまとめる。
+// 登録・スクショの導線は /accounts/new 側の大きなCTAに集約したため、ここでは持たない。
+// クイック更新のみ、控えめなリンクとして残す。
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Camera, Zap, Plus } from "lucide-react";
+import { Zap } from "lucide-react";
 import { collection, query, where, onSnapshot, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthProvider";
@@ -74,7 +75,6 @@ export default function AccountList() {
   }
   const monthKeys = Array.from(groups.keys());
 
-  // サービス別グルーピング。groupNameが未入力の場合は口座名をそのままキーにする
   const serviceGroups = new Map<string, AccountWithId[]>();
   for (const acc of accounts) {
     const key = acc.groupName?.trim() || acc.name;
@@ -95,103 +95,93 @@ export default function AccountList() {
   }
 
   if (isLoading) {
-    return <p className="p-6 text-sm text-gray-500">読み込み中です...</p>;
+    return <p style={{ fontSize: 14, color: "#999" }}>読み込み中です...</p>;
   }
 
   return (
-    <div className="max-w-md mx-auto p-6">
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-lg font-semibold">口座一覧</h1>
-        <div className="flex gap-2">
-          <Link
-            href="/accounts/quick-update"
-            className="text-sm border border-gray-300 rounded-md px-3 py-1.5 flex items-center gap-1"
-          >
-            <Zap size={14} /> クイック更新
-          </Link>
-          <Link
-            href="/accounts/scan"
-            className="text-sm border border-gray-300 rounded-md px-3 py-1.5 flex items-center gap-1"
-          >
-            <Camera size={14} /> スクショ
-          </Link>
-          <Link
-            href="/accounts/new"
-            className="text-sm bg-gray-900 text-white rounded-md px-3 py-1.5 flex items-center gap-1"
-          >
-            <Plus size={14} /> 登録
-          </Link>
-        </div>
-      </div>
-
-      <div className="mb-4">
+    <div>
+      <div style={{ marginBottom: 16 }}>
         <NotificationSetup />
       </div>
 
-      <div className="flex gap-2 mb-4 border-b">
-        <button
-          onClick={() => setTab("withExpiry")}
-          className={`px-3 py-2 text-sm ${
-            tab === "withExpiry" ? "border-b-2 border-gray-900 font-medium" : "text-gray-500"
-          }`}
-        >
-          期限あり
-        </button>
-        <button
-          onClick={() => setTab("noExpiry")}
-          className={`px-3 py-2 text-sm ${
-            tab === "noExpiry" ? "border-b-2 border-gray-900 font-medium" : "text-gray-500"
-          }`}
-        >
-          期限なし
-        </button>
-        <button
-          onClick={() => setTab("byGroup")}
-          className={`px-3 py-2 text-sm ${
-            tab === "byGroup" ? "border-b-2 border-gray-900 font-medium" : "text-gray-500"
-          }`}
-        >
-          サービス別
-        </button>
+      <div style={{ display: "flex", gap: 4, marginBottom: 16, borderBottom: "0.5px solid #eee" }}>
+        {[
+          { key: "withExpiry", label: "期限あり" },
+          { key: "noExpiry", label: "期限なし" },
+          { key: "byGroup", label: "サービス別" },
+        ].map((t) => (
+          <button
+            key={t.key}
+            onClick={() => setTab(t.key as typeof tab)}
+            style={{
+              padding: "8px 12px",
+              fontSize: 13,
+              background: "none",
+              border: "none",
+              borderBottom: tab === t.key ? "2px solid var(--brand)" : "2px solid transparent",
+              color: tab === t.key ? "var(--brand)" : "#999",
+              fontWeight: tab === t.key ? 500 : 400,
+            }}
+          >
+            {t.label}
+          </button>
+        ))}
       </div>
 
       {tab === "withExpiry" && (
-        <div className="space-y-3">
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {monthKeys.length === 0 && (
-            <p className="text-sm text-gray-500">登録された口座がありません</p>
+            <p style={{ fontSize: 14, color: "#999" }}>登録された口座がありません</p>
           )}
           {monthKeys.map((key, index) => {
             const isRecent = index < 3;
             const expanded = isRecent || expandedMonths.has(key);
             const items = groups.get(key)!;
             return (
-              <div key={key} className="border rounded-md overflow-hidden">
+              <div key={key} className="card" style={{ padding: 0, overflow: "hidden" }}>
                 <button
                   onClick={() => toggleMonth(key)}
-                  className="w-full flex justify-between items-center px-3 py-2 text-sm font-medium bg-gray-50"
+                  style={{
+                    width: "100%",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    padding: "10px 14px",
+                    fontSize: 13,
+                    fontWeight: 500,
+                    background: "#faf8f6",
+                    border: "none",
+                  }}
                 >
                   <span>{key}</span>
-                  <span className="text-gray-400">{expanded ? "－" : "＋"}</span>
+                  <span style={{ color: "#bbb" }}>{expanded ? "－" : "＋"}</span>
                 </button>
                 {expanded && (
-                  <ul className="divide-y">
+                  <div>
                     {items.map((acc) => (
-                      <li key={acc.id}>
-                        <Link
-                          href={`/accounts/${acc.id}/edit`}
-                          className={`px-3 py-2 text-sm flex justify-between items-center block ${
-                            isOverdueUnupdated(acc) ? "bg-amber-50" : ""
-                          }`}
-                        >
-                          <div>
-                            <p className="font-medium">{acc.name}</p>
-                            <p className="text-xs text-gray-500">{categoryLabel(acc)}</p>
-                          </div>
-                          <p>{formatBalance(acc.currentBalance, acc.balanceUnit)}</p>
-                        </Link>
-                      </li>
+                      <Link
+                        key={acc.id}
+                        href={`/accounts/${acc.id}/edit`}
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          padding: "12px 14px",
+                          fontSize: 14,
+                          borderTop: "0.5px solid #f0f0f0",
+                          textDecoration: "none",
+                          color: "inherit",
+                          background: isOverdueUnupdated(acc) ? "#fdf3e7" : "transparent",
+                        }}
+                      >
+                        <div>
+                          <p style={{ margin: 0, fontWeight: 500 }}>{acc.name}</p>
+                          <p style={{ margin: 0, fontSize: 12, color: "#999" }}>
+                            {categoryLabel(acc)}
+                          </p>
+                        </div>
+                        <p style={{ margin: 0 }}>{formatBalance(acc.currentBalance, acc.balanceUnit)}</p>
+                      </Link>
                     ))}
-                  </ul>
+                  </div>
                 )}
               </div>
             );
@@ -200,69 +190,86 @@ export default function AccountList() {
       )}
 
       {tab === "noExpiry" && (
-        <ul className="divide-y border rounded-md">
+        <div className="card" style={{ padding: 0, overflow: "hidden" }}>
           {noExpiry.length === 0 && (
-            <li className="px-3 py-4 text-sm text-gray-500">登録された口座がありません</li>
+            <p style={{ fontSize: 14, color: "#999", padding: 14 }}>登録された口座がありません</p>
           )}
           {noExpiry.map((acc) => (
-            <li key={acc.id}>
-              <Link
-                href={`/accounts/${acc.id}/edit`}
-                className="px-3 py-2 text-sm flex justify-between items-center block"
-              >
-                <div>
-                  <p className="font-medium">{acc.name}</p>
-                  <p className="text-xs text-gray-500">{categoryLabel(acc)}</p>
-                </div>
-                <p>{formatBalance(acc.currentBalance, acc.balanceUnit)}</p>
-              </Link>
-            </li>
+            <Link
+              key={acc.id}
+              href={`/accounts/${acc.id}/edit`}
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                padding: "12px 14px",
+                fontSize: 14,
+                borderTop: "0.5px solid #f0f0f0",
+                textDecoration: "none",
+                color: "inherit",
+              }}
+            >
+              <div>
+                <p style={{ margin: 0, fontWeight: 500 }}>{acc.name}</p>
+                <p style={{ margin: 0, fontSize: 12, color: "#999" }}>{categoryLabel(acc)}</p>
+              </div>
+              <p style={{ margin: 0 }}>{formatBalance(acc.currentBalance, acc.balanceUnit)}</p>
+            </Link>
           ))}
-        </ul>
+        </div>
       )}
 
       {tab === "byGroup" && (
-        <div className="space-y-3">
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {serviceGroupKeys.length === 0 && (
-            <p className="text-sm text-gray-500">登録された口座がありません</p>
+            <p style={{ fontSize: 14, color: "#999" }}>登録された口座がありません</p>
           )}
           {serviceGroupKeys.map((key) => {
             const items = serviceGroups.get(key)!;
             return (
-              <div key={key} className="border rounded-md overflow-hidden">
-                <p className="px-3 py-2 text-sm font-medium bg-gray-50">{key}</p>
-                <ul className="divide-y">
-                  {items.map((acc) => {
-                    const expiry = acc.expiryDate
-                      ? (acc.expiryDate as Timestamp).toDate()
-                      : null;
-                    return (
-                      <li key={acc.id}>
-                        <Link
-                          href={`/accounts/${acc.id}/edit`}
-                          className={`px-3 py-2 text-sm flex justify-between items-center block ${
-                            isOverdueUnupdated(acc) ? "bg-amber-50" : ""
-                          }`}
-                        >
-                          <div>
-                            <p className="font-medium">{acc.name}</p>
-                            <p className="text-xs text-gray-500">
-                              {expiry
-                                ? `${expiry.getFullYear()}年${expiry.getMonth() + 1}月期限`
-                                : "期限なし"}
-                            </p>
-                          </div>
-                          <p>{formatBalance(acc.currentBalance, acc.balanceUnit)}</p>
-                        </Link>
-                      </li>
-                    );
-                  })}
-                </ul>
+              <div key={key} className="card" style={{ padding: 0, overflow: "hidden" }}>
+                <p style={{ margin: 0, padding: "10px 14px", fontSize: 13, fontWeight: 500, background: "#faf8f6" }}>
+                  {key}
+                </p>
+                {items.map((acc) => {
+                  const expiry = acc.expiryDate ? (acc.expiryDate as Timestamp).toDate() : null;
+                  return (
+                    <Link
+                      key={acc.id}
+                      href={`/accounts/${acc.id}/edit`}
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        padding: "12px 14px",
+                        fontSize: 14,
+                        borderTop: "0.5px solid #f0f0f0",
+                        textDecoration: "none",
+                        color: "inherit",
+                        background: isOverdueUnupdated(acc) ? "#fdf3e7" : "transparent",
+                      }}
+                    >
+                      <div>
+                        <p style={{ margin: 0, fontWeight: 500 }}>{acc.name}</p>
+                        <p style={{ margin: 0, fontSize: 12, color: "#999" }}>
+                          {expiry ? `${expiry.getFullYear()}年${expiry.getMonth() + 1}月期限` : "期限なし"}
+                        </p>
+                      </div>
+                      <p style={{ margin: 0 }}>{formatBalance(acc.currentBalance, acc.balanceUnit)}</p>
+                    </Link>
+                  );
+                })}
               </div>
             );
           })}
         </div>
       )}
+
+      <div style={{ textAlign: "center", marginTop: 20 }}>
+        <Link href="/accounts/quick-update" className="btn-ghost" style={{ textDecoration: "none" }}>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+            <Zap size={13} /> クイック更新
+          </span>
+        </Link>
+      </div>
     </div>
   );
 }
