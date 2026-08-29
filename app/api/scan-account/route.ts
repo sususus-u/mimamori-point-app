@@ -48,14 +48,26 @@ export async function POST(req: NextRequest) {
 - 通常ポイント/合計ポイント自体に、別途明示された有効期限がある場合のみ、トップレベルの expiryDate に入れてください。
 - 画面上に有効期限の表示が1つしかなく、それが内訳(期間限定分)に対する記載である場合、トップレベルの expiryDate は必ず null にしてください(通常分とみなして期限ありにしてはいけません)。
 
+**重要:確信度の判定**
+数値・日付の各項目について、読み取りにどれだけ自信が持てたかを "high"(はっきり読み取れた) か "low"(自信が持てない) で申告してください。以下のようなケースは "low" にしてください。
+- 文字がぼやけている、小さすぎる、一部が隠れている・切れている
+- 反射・影・アイコンなどで数字や記号が読みにくい
+- 桁区切り(カンマ)や小数点、円マークなどの位置が曖昧で、金額の桁数に自信が持てない
+- 年・月・日のどれか、または元号/西暦の解釈に自信が持てない
+値自体が null(読み取れなかった)の場合は、対応する confidence は "high" のままで構いません(該当項目なしのため)。
+
 {
   "serviceName": "サービス名(例:PayPay残高、dポイント など。読み取れない場合はnull)",
   "totalBalance": 数値のみ(合計残高。カンマなし。読み取れない場合はnull),
+  "totalBalanceConfidence": "high または low",
   "balanceUnit": "円 か pt か マイル か 枚 など(読み取れない場合はnull)",
   "expiryDate": "通常分/合計分に明示された有効期限のみ。YYYY-MM-DD形式(なければnull)",
+  "expiryDateConfidence": "high または low",
   "limitedPortion": {
     "balance": 数値のみ(期間・用途限定ポイントの金額),
-    "expiryDate": "期間・用途限定ポイントの有効期限、YYYY-MM-DD形式(読み取れない場合はnull)"
+    "balanceConfidence": "high または low",
+    "expiryDate": "期間・用途限定ポイントの有効期限、YYYY-MM-DD形式(読み取れない場合はnull)",
+    "expiryDateConfidence": "high または low"
   } または null
 }`,
             },

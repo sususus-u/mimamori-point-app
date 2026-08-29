@@ -90,6 +90,9 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [pendingOutcome, setPendingOutcome] = useState<OutcomeEventType | null>(null);
   const [isRecordingOutcome, setIsRecordingOutcome] = useState(false);
+  // スクショ読み取りの確信度が低かった項目(true の場合、枠色と注意文で強調する)
+  const [balanceLowConfidence, setBalanceLowConfidence] = useState(false);
+  const [expiryLowConfidence, setExpiryLowConfidence] = useState(false);
 
   const isStampCard = category === "stamp_card";
   const isOther = category === "other";
@@ -158,6 +161,8 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
           balance?: string | number;
           balanceUnit?: string;
           expiryDate?: string;
+          balanceLowConfidence?: boolean;
+          expiryLowConfidence?: boolean;
         }>;
       };
       const data = parsed.items[0];
@@ -178,6 +183,8 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
       if (data.balance !== undefined && data.balance !== "") setBalance(String(data.balance));
       if (data.balanceUnit) setBalanceUnit(data.balanceUnit);
       if (data.expiryDate) setExpiryDate(data.expiryDate);
+      setBalanceLowConfidence(Boolean(data.balanceLowConfidence));
+      setExpiryLowConfidence(Boolean(data.expiryLowConfidence));
     } catch (error) {
       console.error(error);
     }
@@ -452,7 +459,17 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
           <div style={{ display: "flex", gap: 12 }}>
             <div className="field" style={{ flex: 1 }}>
               <label>残高</label>
-              <input type="number" value={balance} onChange={(e) => setBalance(e.target.value)} />
+              <input
+                type="number"
+                value={balance}
+                onChange={(e) => setBalance(e.target.value)}
+                style={balanceLowConfidence ? { borderColor: "#b56a1e", background: "#fdf3e7" } : undefined}
+              />
+              {balanceLowConfidence && (
+                <p style={{ fontSize: 12, color: "#b56a1e", marginTop: 4 }}>
+                  読み取りに自信が持てませんでした。確認してください
+                </p>
+              )}
             </div>
             <div className="field" style={{ width: 96 }}>
               <label>単位</label>
@@ -468,7 +485,17 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
 
         <div className="field">
           <label>有効期限(任意)</label>
-          <input type="date" value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)} />
+          <input
+            type="date"
+            value={expiryDate}
+            onChange={(e) => setExpiryDate(e.target.value)}
+            style={expiryLowConfidence ? { borderColor: "#b56a1e", background: "#fdf3e7" } : undefined}
+          />
+          {expiryLowConfidence && (
+            <p style={{ fontSize: 12, color: "#b56a1e", marginTop: 4 }}>
+              読み取りに自信が持てませんでした。確認してください
+            </p>
+          )}
           <p style={{ fontSize: 13, color: "#999", marginTop: 6 }}>
             空欄の場合は「期限なし・貯蓄枠」として扱われます
           </p>

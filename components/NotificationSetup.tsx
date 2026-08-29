@@ -39,7 +39,7 @@ export default function NotificationSetup() {
       <button
         onClick={handleClick}
         disabled={status === "loading"}
-        className="text-xs border border-gray-300 rounded-md px-2 py-1 disabled:opacity-50 flex items-center gap-1"
+        className="text-xs border border-gray-300 rounded-md px-4 min-h-11 disabled:opacity-50 flex items-center justify-center gap-1"
       >
         <Bell size={12} /> {status === "loading" ? "設定中..." : "通知を有効にする"}
       </button>
