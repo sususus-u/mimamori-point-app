@@ -54,7 +54,6 @@ export default function ReportsPage() {
   const [continuousRows, setContinuousRows] = useState<ContinuousRow[]>([]);
   const [showUsedUpList, setShowUsedUpList] = useState(false);
   const [showExpiredList, setShowExpiredList] = useState(false);
-  const [showAmountDetail, setShowAmountDetail] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
 
   const load = useCallback(async () => {
@@ -123,7 +122,6 @@ export default function ReportsPage() {
     setMonthCursor((prev) => new Date(prev.getFullYear(), prev.getMonth() + delta, 1));
     setShowUsedUpList(false);
     setShowExpiredList(false);
-    setShowAmountDetail(false);
   }
 
   const expiredYenTotal = expiredEvents
@@ -197,7 +195,13 @@ export default function ReportsPage() {
             <p style={{ fontSize: 13, color: "#555", margin: "0 0 4px" }}>今月失効</p>
             <p style={{ fontSize: 24, fontFamily: "var(--font-heading)", fontWeight: 700, margin: 0 }}>
               {expiredEvents.length}件
+              {expiredYenCount > 0 && `(¥${expiredYenTotal.toLocaleString()})`}
             </p>
+            {expiredNonYenCount > 0 && (
+              <p style={{ fontSize: 12, color: "#999", margin: "2px 0 0" }}>
+                非円建て:{expiredNonYenCount}件
+              </p>
+            )}
             {expiredEvents.length > 0 && (
               <button
                 onClick={() => setShowExpiredList((v) => !v)}
@@ -216,24 +220,6 @@ export default function ReportsPage() {
                   </p>
                 ))}
               </div>
-            )}
-
-            {(expiredYenCount > 0 || expiredNonYenCount > 0) && (
-              <>
-                <button
-                  onClick={() => setShowAmountDetail((v) => !v)}
-                  className="collapse-toggle"
-                  style={{ padding: "6px 0 0" }}
-                >
-                  {showAmountDetail ? "－ 金額の詳細を閉じる" : "＋ 金額の詳細"}
-                </button>
-                {showAmountDetail && (
-                  <div style={{ marginTop: 8, fontSize: 13, color: "#555" }}>
-                    {expiredYenCount > 0 && <p style={{ margin: "2px 0" }}>円建て合計:¥{expiredYenTotal.toLocaleString()}</p>}
-                    {expiredNonYenCount > 0 && <p style={{ margin: "2px 0" }}>非円建て:{expiredNonYenCount}件</p>}
-                  </div>
-                )}
-              </>
             )}
           </div>
 

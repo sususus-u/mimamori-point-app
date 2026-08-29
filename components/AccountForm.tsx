@@ -322,7 +322,17 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
         isYenBased,
         createdAt: serverTimestamp(),
       });
-      await deleteDoc(doc(db, "accounts", accountId));
+
+      if (accountType === "finite") {
+        await deleteDoc(doc(db, "accounts", accountId));
+      } else {
+        await updateDoc(doc(db, "accounts", accountId), {
+          currentBalance: 0,
+          expiryDate: null,
+          lastUpdatedAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+      }
       router.push("/");
     } catch (error) {
       console.error(error);
@@ -537,16 +547,18 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
           {isSubmitting ? "保存中..." : isEditMode ? "更新する" : "登録する"}
         </button>
 
-        {isEditMode && accountType === "finite" && (
+        {isEditMode && (
           <div className="action-row" style={{ marginTop: 12 }}>
-            <button
-              type="button"
-              onClick={() => setPendingOutcome("used_up")}
-              disabled={isSubmitting || isDeleting}
-              className="btn-outline"
-            >
-              使いきった
-            </button>
+            {accountType === "finite" && (
+              <button
+                type="button"
+                onClick={() => setPendingOutcome("used_up")}
+                disabled={isSubmitting || isDeleting}
+                className="btn-outline"
+              >
+                使いきった
+              </button>
+            )}
             <button
               type="button"
               onClick={() => setPendingOutcome("expired")}
@@ -591,7 +603,13 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
         <div className="modal-backdrop">
           <div className="modal-sheet">
             <p>
-              「{name || "この口座"}」を{pendingOutcome === "used_up" ? "使いきった" : "失効した"}記録を残します。よろしいですか?
+              {accountType === "continuous" ? (
+                <>「{name || "この口座"}」の失効を記録します。残高は0にリセットされます。よろしいですか?</>
+              ) : (
+                <>
+                  「{name || "この口座"}」を{pendingOutcome === "used_up" ? "使いきった" : "失効した"}記録を残します。よろしいですか?
+                </>
+              )}
             </p>
             <div className="modal-actions">
               <button
