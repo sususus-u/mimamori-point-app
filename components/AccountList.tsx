@@ -104,7 +104,16 @@ export default function AccountList() {
         <NotificationSetup />
       </div>
 
-      <div style={{ display: "flex", gap: 4, marginBottom: 16, borderBottom: "0.5px solid #eee" }}>
+      <div
+        style={{
+          display: "flex",
+          gap: 4,
+          marginBottom: 16,
+          background: "#f2ece7",
+          borderRadius: "var(--radius-pill)",
+          padding: 4,
+        }}
+      >
         {[
           { key: "withExpiry", label: "期限あり" },
           { key: "noExpiry", label: "期限なし" },
@@ -114,12 +123,13 @@ export default function AccountList() {
             key={t.key}
             onClick={() => setTab(t.key as typeof tab)}
             style={{
-              padding: "8px 12px",
+              flex: 1,
+              padding: "8px 10px",
               fontSize: 13,
-              background: "none",
+              background: tab === t.key ? "var(--brand)" : "transparent",
               border: "none",
-              borderBottom: tab === t.key ? "2px solid var(--brand)" : "2px solid transparent",
-              color: tab === t.key ? "var(--brand)" : "#999",
+              borderRadius: "var(--radius-pill)",
+              color: tab === t.key ? "#fff" : "#666",
               fontWeight: tab === t.key ? 500 : 400,
             }}
           >
