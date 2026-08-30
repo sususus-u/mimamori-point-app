@@ -6,7 +6,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { List, Plus, Menu } from "lucide-react";
+import { Wallet, Plus, Menu } from "lucide-react";
 
 const SCREEN_TITLES: Record<string, string> = {
   "/": "サービス一覧",
@@ -27,7 +27,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   const tabs = [
-    { href: "/", label: "一覧", icon: List, active: pathname === "/" },
+    { href: "/", label: "一覧", icon: Wallet, active: pathname === "/" },
     {
       href: "/accounts/new",
       label: "登録",
