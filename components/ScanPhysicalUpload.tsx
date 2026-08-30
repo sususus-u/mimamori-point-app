@@ -42,6 +42,7 @@ export default function ScanPhysicalUpload() {
   const [itemCount, setItemCount] = useState<number | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [savedMessage, setSavedMessage] = useState("");
+  const [nameUnrecognized, setNameUnrecognized] = useState(false);
 
   async function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -68,6 +69,7 @@ export default function ScanPhysicalUpload() {
       }
 
       setName(data.name ?? "");
+      setNameUnrecognized(!data.name);
       setTotalAmount(data.totalAmount !== null ? String(data.totalAmount) : "");
       setExpiryDate(data.expiryDate ?? "");
       setItemCount(data.itemCount);
@@ -150,6 +152,9 @@ export default function ScanPhysicalUpload() {
       <p style={{ fontSize: 12, color: "#999", marginBottom: 16 }}>
         読み取り精度が写真の状態に左右されやすいため、保存前に必ず内容を確認してください。
       </p>
+      <p style={{ fontSize: 12, color: "#999", marginBottom: 16 }}>
+        明るい場所で、正面からピントを合わせて撮ると読み取り精度が上がります。
+      </p>
 
       <input
         type="file"
@@ -188,6 +193,11 @@ export default function ScanPhysicalUpload() {
           <div className="field">
             <label>名前</label>
             <input type="text" value={name} onChange={(e) => setName(e.target.value)} />
+            {nameUnrecognized && (
+              <p style={{ fontSize: 12, color: "#b3261e" }}>
+                文字を読み取れませんでした。手入力してください
+              </p>
+            )}
           </div>
 
           <div className="field">
