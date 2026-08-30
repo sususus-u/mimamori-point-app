@@ -229,7 +229,7 @@ export default function ReportsPage() {
           <p style={{ fontSize: 12, color: "#999", margin: "0 0 6px" }}>期限あり残高</p>
           <div className="card" style={{ padding: 0, overflow: "hidden", marginBottom: 12 }}>
             {withExpiryRows.length === 0 && (
-              <p style={{ fontSize: 13, color: "#999", padding: 14 }}>対象の口座がありません</p>
+              <p style={{ fontSize: 13, color: "#999", padding: 14 }}>対象のサービスがありません</p>
             )}
             {withExpiryRows.map((row) => (
               <div
@@ -253,7 +253,7 @@ export default function ReportsPage() {
           <p style={{ fontSize: 12, color: "#999", margin: "0 0 6px" }}>期限なし残高</p>
           <div className="card" style={{ padding: 0, overflow: "hidden" }}>
             {noExpiryRows.length === 0 && (
-              <p style={{ fontSize: 13, color: "#999", padding: 14 }}>対象の口座がありません</p>
+              <p style={{ fontSize: 13, color: "#999", padding: 14 }}>対象のサービスがありません</p>
             )}
             {noExpiryRows.map((row) => (
               <div

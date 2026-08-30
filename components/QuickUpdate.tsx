@@ -146,7 +146,7 @@ export default function QuickUpdate() {
         <ul className="divide-y border rounded-md">
           {groupKeys.length === 0 && (
             <li className="px-3 py-4 text-sm text-gray-500">
-              継続型の口座がまだ登録されていません
+              継続型のサービスがまだ登録されていません
             </li>
           )}
           {groupKeys.map((key) => {

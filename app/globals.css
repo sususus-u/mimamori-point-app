@@ -212,23 +212,6 @@ button {
   gap: 4px;
 }
 
-.cta-scan {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  width: 100%;
-  background: var(--brand-surface);
-  color: var(--brand);
-  border: 1px dashed var(--brand);
-  border-radius: var(--radius-card);
-  padding: 16px;
-  font-size: 15px;
-  font-weight: 500;
-  text-decoration: none;
-  margin-bottom: 24px;
-}
-
 /* --- ボトムシート(削除確認など) --- */
 
 .modal-backdrop {

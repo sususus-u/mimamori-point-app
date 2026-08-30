@@ -118,7 +118,7 @@ export default function ScanUpload() {
         return;
       }
 
-      setStatusMessage("既存の口座を確認しています...");
+      setStatusMessage("既存のサービスを確認しています...");
 
       // 内訳(期間・用途限定ポイント等)が見つかった場合は、通常分/限定分の2口座に分けて扱う
       const targets = limitedPortion
@@ -278,7 +278,7 @@ export default function ScanUpload() {
       <div className="max-w-md mx-auto p-6 space-y-4">
         <h1 className="text-lg font-semibold">読み取り内容の確認</h1>
         <p className="text-sm text-gray-500">
-          既に同じ名前の口座があります。内容を確認・修正してから保存してください。
+          既に同じ名前のサービスがあります。内容を確認・修正してから保存してください。
         </p>
 
         {matchItems.map((item, index) => (
@@ -363,7 +363,7 @@ export default function ScanUpload() {
   return (
     <div>
       <p style={{ fontSize: 13, color: "#999" }}>
-        残高・期限が写ったスクリーンショットを選んでください。同じ名前の口座がすでにあれば内容を確認してから更新し、初めてのサービスなら内容確認画面に進みます。
+        残高・期限が写ったスクリーンショットを選んでください。同じ名前のサービスがすでにあれば内容を確認してから更新し、初めてのサービスなら内容確認画面に進みます。
       </p>
       <p style={{ fontSize: 13, color: "#999", display: "flex", alignItems: "flex-start", gap: 4, marginTop: 8 }}>
         <Lightbulb size={14} style={{ flexShrink: 0, marginTop: 1 }} />

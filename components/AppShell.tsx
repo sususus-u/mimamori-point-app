@@ -9,8 +9,8 @@ import { usePathname } from "next/navigation";
 import { List, Plus, Menu } from "lucide-react";
 
 const SCREEN_TITLES: Record<string, string> = {
-  "/": "口座一覧",
-  "/accounts/new": "口座を登録",
+  "/": "サービス一覧",
+  "/accounts/new": "サービスを登録",
   "/accounts/scan": "スクショで登録",
   "/accounts/quick-update": "クイック更新",
   "/menu": "メニュー",
@@ -19,7 +19,7 @@ const SCREEN_TITLES: Record<string, string> = {
 
 function getTitle(pathname: string): string {
   if (SCREEN_TITLES[pathname]) return SCREEN_TITLES[pathname];
-  if (pathname.startsWith("/accounts/") && pathname.endsWith("/edit")) return "口座を編集";
+  if (pathname.startsWith("/accounts/") && pathname.endsWith("/edit")) return "サービスを編集";
   return "たまりびより";
 }
 

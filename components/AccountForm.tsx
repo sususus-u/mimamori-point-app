@@ -350,9 +350,8 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
     <>
       <form onSubmit={handleSubmit}>
         {!isEditMode && (
-          <Link href="/accounts/scan" className="cta-scan">
-            <Camera size={18} />
-            <span>スクショで登録する</span>
+          <Link href="/accounts/scan" className="btn-primary" style={{ display: "block", textAlign: "center", textDecoration: "none", marginBottom: 24 }}>
+            スクショで登録する
           </Link>
         )}
 
@@ -578,7 +577,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
             className="btn-danger"
             style={{ marginTop: 12 }}
           >
-            この口座を削除する
+            このサービスを削除する
           </button>
         )}
       </form>
@@ -586,7 +585,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
       {showDeleteModal && (
         <div className="modal-backdrop">
           <div className="modal-sheet">
-            <p>「{name || "この口座"}」を削除します。よろしいですか?</p>
+            <p>「{name || "このサービス"}」を削除します。よろしいですか?</p>
             <div className="modal-actions">
               <button className="btn-danger" onClick={handleDelete} disabled={isDeleting}>
                 {isDeleting ? "削除中..." : "削除する"}
@@ -604,10 +603,10 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
           <div className="modal-sheet">
             <p>
               {accountType === "continuous" ? (
-                <>「{name || "この口座"}」の失効を記録します。残高は0にリセットされます。よろしいですか?</>
+                <>「{name || "このサービス"}」の失効を記録します。残高は0にリセットされます。よろしいですか?</>
               ) : (
                 <>
-                  「{name || "この口座"}」を{pendingOutcome === "used_up" ? "使いきった" : "失効した"}記録を残します。よろしいですか?
+                  「{name || "このサービス"}」を{pendingOutcome === "used_up" ? "使いきった" : "失効した"}記録を残します。よろしいですか?
                 </>
               )}
             </p>

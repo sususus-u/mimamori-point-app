@@ -141,7 +141,7 @@ export default function AccountList() {
       {tab === "withExpiry" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {monthKeys.length === 0 && (
-            <p style={{ fontSize: 14, color: "#999" }}>登録された口座がありません</p>
+            <p style={{ fontSize: 14, color: "#999" }}>登録されたサービスがありません</p>
           )}
           {monthKeys.map((key, index) => {
             const isRecent = index < 3;
@@ -202,7 +202,7 @@ export default function AccountList() {
       {tab === "noExpiry" && (
         <div className="card" style={{ padding: 0, overflow: "hidden" }}>
           {noExpiry.length === 0 && (
-            <p style={{ fontSize: 14, color: "#999", padding: 14 }}>登録された口座がありません</p>
+            <p style={{ fontSize: 14, color: "#999", padding: 14 }}>登録されたサービスがありません</p>
           )}
           {noExpiry.map((acc) => (
             <Link
@@ -231,7 +231,7 @@ export default function AccountList() {
       {tab === "byGroup" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {serviceGroupKeys.length === 0 && (
-            <p style={{ fontSize: 14, color: "#999" }}>登録された口座がありません</p>
+            <p style={{ fontSize: 14, color: "#999" }}>登録されたサービスがありません</p>
           )}
           {serviceGroupKeys.map((key) => {
             const items = serviceGroups.get(key)!;
