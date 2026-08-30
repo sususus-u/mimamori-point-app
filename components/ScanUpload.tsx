@@ -365,6 +365,9 @@ export default function ScanUpload() {
       <p style={{ fontSize: 13, color: "#999" }}>
         残高・期限が写ったスクリーンショットを選んでください。同じ名前のサービスがすでにあれば内容を確認してから更新し、初めてのサービスなら内容確認画面に進みます。
       </p>
+      <Link href="/accounts/scan-physical" style={{ fontSize: 13, color: "var(--brand)", textDecoration: "underline" }}>
+        切手・紙の商品券などの現物はこちら →
+      </Link>
       <p style={{ fontSize: 13, color: "#999", display: "flex", alignItems: "flex-start", gap: 4, marginTop: 8 }}>
         <Lightbulb size={14} style={{ flexShrink: 0, marginTop: 1 }} />
         バーコード決済画面はスクショできないことがあります。ポイント残高だけの画面に移動してから撮影すると成功しやすいです
