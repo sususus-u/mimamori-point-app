@@ -24,6 +24,7 @@ interface ScanResult {
   name: string | null;
   itemCount: number | null;
   totalAmount: number | null;
+  faceValuePerItem: number | null;
   expiryDate: string | null;
 }
 
@@ -38,6 +39,8 @@ export default function ScanPhysicalUpload() {
   const [matchedAccountId, setMatchedAccountId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [totalAmount, setTotalAmount] = useState("");
+  const [unitAmount, setUnitAmount] = useState("");
+  const [quantity, setQuantity] = useState("");
   const [expiryDate, setExpiryDate] = useState("");
   const [itemCount, setItemCount] = useState<number | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -71,6 +74,8 @@ export default function ScanPhysicalUpload() {
       setName(data.name ?? "");
       setNameUnrecognized(!data.name);
       setTotalAmount(data.totalAmount !== null ? String(data.totalAmount) : "");
+      setUnitAmount(data.faceValuePerItem !== null ? String(data.faceValuePerItem) : "");
+      setQuantity(data.itemCount !== null ? String(data.itemCount) : "");
       setExpiryDate(data.expiryDate ?? "");
       setItemCount(data.itemCount);
 
@@ -92,6 +97,13 @@ export default function ScanPhysicalUpload() {
     } finally {
       setIsProcessing(false);
     }
+  }
+
+  function handleApplyUnitCalc() {
+    const unit = Number(unitAmount);
+    const qty = Number(quantity);
+    if (unitAmount === "" || quantity === "" || isNaN(unit) || isNaN(qty)) return;
+    setTotalAmount(String(unit * qty));
   }
 
   async function handleSave() {
@@ -196,6 +208,52 @@ export default function ScanPhysicalUpload() {
             {nameUnrecognized && (
               <p style={{ fontSize: 12, color: "#b3261e" }}>
                 文字を読み取れませんでした。手入力してください
+              </p>
+            )}
+          </div>
+
+          <div className="field">
+            <label>額面 × 枚数</label>
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <input
+                type="number"
+                value={unitAmount}
+                onChange={(e) => setUnitAmount(e.target.value)}
+                placeholder="額面(1枚あたり)"
+                style={{ flex: 1 }}
+              />
+              <span style={{ color: "#999" }}>×</span>
+              <input
+                type="number"
+                value={quantity}
+                onChange={(e) => setQuantity(e.target.value)}
+                placeholder="枚数"
+                style={{ flex: 1 }}
+              />
+              <button
+                type="button"
+                onClick={handleApplyUnitCalc}
+                style={{
+                  flexShrink: 0,
+                  padding: "10px 14px",
+                  fontSize: 13,
+                  fontWeight: 500,
+                  color: "var(--brand)",
+                  background: "#fff",
+                  border: "1px solid var(--brand)",
+                  borderRadius: "var(--radius-pill)",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                反映
+              </button>
+            </div>
+            <p style={{ fontSize: 12, color: "#999", marginTop: 6 }}>
+              同じ額面のものが複数ある場合、まとめて入力できます
+            </p>
+            {itemCount === 1 && (
+              <p style={{ fontSize: 12, color: "var(--brand)", marginTop: 4 }}>
+                1枚だけ撮影した場合の初期値です。実際にお持ちの枚数に変更すると合計金額を計算できます
               </p>
             )}
           </div>
