@@ -24,6 +24,21 @@ function formatBalance(balance?: number | null, unit?: string | null) {
   return unit === "円" ? `¥${balance.toLocaleString()}` : `${balance.toLocaleString()}${unit ?? ""}`;
 }
 
+function balanceDisplay(acc: AccountWithId) {
+  if (
+    acc.faceValue !== undefined &&
+    acc.faceValue !== null &&
+    acc.itemQuantity !== undefined &&
+    acc.itemQuantity !== null
+  ) {
+    return `¥${acc.faceValue.toLocaleString()} × ${acc.itemQuantity}枚 = ${formatBalance(
+      acc.currentBalance,
+      acc.balanceUnit
+    )}`;
+  }
+  return formatBalance(acc.currentBalance, acc.balanceUnit);
+}
+
 function monthKey(date: Date) {
   return `${date.getFullYear()}年${date.getMonth() + 1}月`;
 }
@@ -235,7 +250,7 @@ export default function AccountList() {
                                 {categoryLabel(acc)}
                               </p>
                             </div>
-                            <p style={{ margin: 0 }}>{formatBalance(acc.currentBalance, acc.balanceUnit)}</p>
+                            <p style={{ margin: 0 }}>{balanceDisplay(acc)}</p>
                           </Link>
                         ))}
                       </div>
@@ -272,7 +287,7 @@ export default function AccountList() {
                         {expiry ? `${expiry.getFullYear()}年${expiry.getMonth() + 1}月期限` : ""}
                       </p>
                     </div>
-                    <p style={{ margin: 0 }}>{formatBalance(acc.currentBalance, acc.balanceUnit)}</p>
+                    <p style={{ margin: 0 }}>{balanceDisplay(acc)}</p>
                   </Link>
                 );
               })}
@@ -326,7 +341,7 @@ export default function AccountList() {
                   <p style={{ margin: 0, fontWeight: 500 }}>{acc.name}</p>
                   <p style={{ margin: 0, fontSize: 12, color: "#999" }}>{categoryLabel(acc)}</p>
                 </div>
-                <p style={{ margin: 0 }}>{formatBalance(acc.currentBalance, acc.balanceUnit)}</p>
+                <p style={{ margin: 0 }}>{balanceDisplay(acc)}</p>
               </Link>
             ))}
           </div>
@@ -390,7 +405,7 @@ export default function AccountList() {
                             {expiry ? `${expiry.getFullYear()}年${expiry.getMonth() + 1}月期限` : "期限なし"}
                           </p>
                         </div>
-                        <p style={{ margin: 0 }}>{formatBalance(acc.currentBalance, acc.balanceUnit)}</p>
+                        <p style={{ margin: 0 }}>{balanceDisplay(acc)}</p>
                       </Link>
                     );
                   })}

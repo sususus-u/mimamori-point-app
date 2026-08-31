@@ -72,6 +72,8 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
   const [accountType, setAccountType] = useState<AccountType>(CATEGORY_DEFAULTS.electronic_money.type);
   const [balance, setBalance] = useState("");
   const [balanceUnit, setBalanceUnit] = useState("円");
+  const [faceValue, setFaceValue] = useState("");
+  const [itemQuantity, setItemQuantity] = useState("");
   const [expiryDate, setExpiryDate] = useState("");
   const [storageLocationMemo, setStorageLocationMemo] = useState("");
   const [firstStageDays, setFirstStageDays] = useState(
@@ -96,6 +98,17 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
 
   const isStampCard = category === "stamp_card";
   const isOther = category === "other";
+  const isGiftCertificate = category === "gift_certificate";
+
+  // 商品券・ギフトカードの場合、残高は額面×枚数から自動計算する(手入力させない)
+  useEffect(() => {
+    if (category !== "gift_certificate") return;
+    if (faceValue === "" || itemQuantity === "") return;
+    const fv = Number(faceValue);
+    const qty = Number(itemQuantity);
+    if (Number.isNaN(fv) || Number.isNaN(qty)) return;
+    setBalance(String(fv * qty));
+  }, [faceValue, itemQuantity, category]);
 
   // 編集モードの場合、既存データを読み込んでフォームに反映する
   useEffect(() => {
@@ -120,6 +133,12 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
             : String(data.currentBalance)
         );
         setBalanceUnit(data.balanceUnit ?? "円");
+        if (data.faceValue !== undefined && data.faceValue !== null) {
+          setFaceValue(String(data.faceValue));
+        }
+        if (data.itemQuantity !== undefined && data.itemQuantity !== null) {
+          setItemQuantity(String(data.itemQuantity));
+        }
         if (data.expiryDate) {
           const d = (data.expiryDate as Timestamp).toDate();
           const yyyy = d.getFullYear();
@@ -216,6 +235,10 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
       setErrorMessage("「その他」を選んだ場合は、種類の名前を入力してください。");
       return;
     }
+    if (isGiftCertificate && (faceValue === "" || itemQuantity === "")) {
+      setErrorMessage("額面と枚数を入力してください。");
+      return;
+    }
 
     setIsSubmitting(true);
     try {
@@ -233,6 +256,8 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
           : {
               currentBalance: balance === "" ? null : Number(balance),
               balanceUnit,
+              faceValue: faceValue === "" ? null : Number(faceValue),
+              itemQuantity: itemQuantity === "" ? null : Number(itemQuantity),
             }),
         expiryDate: expiryDate ? Timestamp.fromDate(new Date(expiryDate)) : null,
         storageLocationMemo: storageLocationMemo.trim() || null,
@@ -464,7 +489,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
           </div>
         )}
 
-        {!isStampCard && (
+        {!isStampCard && !isGiftCertificate && (
           <div style={{ display: "flex", gap: 12 }}>
             <div className="field" style={{ flex: 1 }}>
               <label>残高</label>
@@ -487,6 +512,29 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
                 value={balanceUnit}
                 onChange={(e) => setBalanceUnit(e.target.value)}
                 placeholder="円/pt/マイル"
+              />
+            </div>
+          </div>
+        )}
+
+        {isGiftCertificate && (
+          <div style={{ display: "flex", gap: 12 }}>
+            <div className="field" style={{ flex: 1 }}>
+              <label>額面</label>
+              <input
+                type="number"
+                value={faceValue}
+                onChange={(e) => setFaceValue(e.target.value)}
+                placeholder="1枚あたり"
+              />
+            </div>
+            <div className="field" style={{ flex: 1 }}>
+              <label>枚数</label>
+              <input
+                type="number"
+                value={itemQuantity}
+                onChange={(e) => setItemQuantity(e.target.value)}
+                placeholder="枚数"
               />
             </div>
           </div>

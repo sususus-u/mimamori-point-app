@@ -6,7 +6,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Wallet, Plus, Menu } from "lucide-react";
+import { Wallet, Plus, Menu, LayoutGrid } from "lucide-react";
+
+const HUB_URL = "https://okizukibiyori.com/";
 
 const SCREEN_TITLES: Record<string, string> = {
   "/": "サービス一覧",
@@ -45,8 +47,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="app-shell">
       <header className="appbar">
-        <p className="appbar-brand">たまりびより</p>
-        <h1 className="appbar-title">{getTitle(pathname)}</h1>
+        <div>
+          <p className="appbar-brand">たまりびより</p>
+          <h1 className="appbar-title">{getTitle(pathname)}</h1>
+        </div>
+        <a href={HUB_URL} className="appbar-home" aria-label="きづきびより ハブに戻る">
+          <LayoutGrid size={20} />
+        </a>
       </header>
 
       <main className="scroll">{children}</main>

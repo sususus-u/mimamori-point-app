@@ -111,6 +111,10 @@ export default function ScanPhysicalUpload() {
       setErrorMessage("名前を入力してください。");
       return;
     }
+    if (unitAmount === "" || quantity === "") {
+      setErrorMessage("額面と枚数を入力してください。");
+      return;
+    }
     setIsSaving(true);
     setErrorMessage("");
 
@@ -124,6 +128,8 @@ export default function ScanPhysicalUpload() {
           currentBalance: balanceValue,
           balanceUnit: "円",
           expiryDate: expiryValue,
+          faceValue: unitAmount === "" ? null : Number(unitAmount),
+          itemQuantity: quantity === "" ? null : Number(quantity),
           lastUpdatedAt: now,
           updatedAt: now,
         });
@@ -138,6 +144,8 @@ export default function ScanPhysicalUpload() {
           currentBalance: balanceValue,
           balanceUnit: "円",
           expiryDate: expiryValue,
+          faceValue: unitAmount === "" ? null : Number(unitAmount),
+          itemQuantity: quantity === "" ? null : Number(quantity),
           storageLocationMemo: null,
           notificationTiming: { firstStageDays: 90, secondStageDays: 21 },
           lastUpdatedAt: now,

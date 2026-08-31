@@ -129,6 +129,11 @@ export interface AccountDoc {
   /** 表示単位。円建てなら "円"、非円建てなら "pt" "マイル" "枚" など */
   balanceUnit?: string;
 
+  /** 額面(1枚あたり)。現物(商品券・切手等)で枚数×額面の内訳を表示するために使用 */
+  faceValue?: number | null;
+  /** 枚数。faceValue とセットで使用 */
+  itemQuantity?: number | null;
+
   /** 任意項目。空欄の場合は「期限なし・貯蓄枠タブ」に分類される */
   expiryDate?: Timestamp | null;
 
