@@ -235,7 +235,12 @@ export default function ScanPhysicalUpload() {
 
           <div className="field">
             <label>名前</label>
-            <input type="text" value={name} onChange={(e) => setName(e.target.value)} />
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="例:切手、図書カード"
+            />
             {nameUnrecognized && (
               <p style={{ fontSize: 12, color: "#b3261e" }}>
                 文字を読み取れませんでした。手入力してください
@@ -281,6 +286,9 @@ export default function ScanPhysicalUpload() {
             </div>
             <p style={{ fontSize: 12, color: "#999", marginTop: 6 }}>
               同じ額面のものが複数ある場合、まとめて入力できます
+            </p>
+            <p style={{ fontSize: 12, color: "#999", marginTop: 4 }}>
+              切手など重なって見えるものは、枚数を多く数えてしまうことがあります。実際の枚数に修正してください。
             </p>
             {itemCount === 1 && (
               <p style={{ fontSize: 12, color: "var(--brand)", marginTop: 4 }}>
