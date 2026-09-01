@@ -5,7 +5,7 @@
 // 種類を選ぶと、CATEGORY_DEFAULTS から円建てフラグ・タイプ・通知タイミングの
 // 初期値が自動で入る。ポイント・その他は円建て/非円建てをユーザーが選び直せる。
 
-import { useState, useEffect, type FormEvent } from "react";
+import { useState, useEffect, useRef, type FormEvent, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Camera } from "lucide-react";
@@ -63,6 +63,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
   const router = useRouter();
   const { uid, isLoading } = useAuth();
   const isEditMode = Boolean(accountId);
+  const physicalFileInputRef = useRef<HTMLInputElement>(null);
 
   const [name, setName] = useState("");
   const [groupName, setGroupName] = useState("");
@@ -208,6 +209,19 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
       console.error(error);
     }
   }, [accountId]);
+
+  async function handlePhysicalCapture(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+
+    const base64 = await fileToBase64(file);
+    sessionStorage.setItem(
+      "physical-scan-pending-image",
+      JSON.stringify({ base64, mediaType: file.type })
+    );
+    router.push("/accounts/scan-physical");
+  }
 
   function handleCategoryChange(newCategory: AccountCategory) {
     setCategory(newCategory);
@@ -379,13 +393,22 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
             <Link href="/accounts/scan" className="btn-primary" style={{ display: "block", textAlign: "center", textDecoration: "none" }}>
               画面のスクショで登録
             </Link>
-            <Link
-              href="/accounts/scan-physical"
+            <button
+              type="button"
+              onClick={() => physicalFileInputRef.current?.click()}
               className="btn-primary"
-              style={{ display: "block", textAlign: "center", textDecoration: "none", marginTop: 12, background: "#8a5a62" }}
+              style={{ display: "block", width: "100%", textAlign: "center", marginTop: 12, background: "#8a5a62" }}
             >
               現物を撮影して登録
-            </Link>
+            </button>
+            <input
+              ref={physicalFileInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={handlePhysicalCapture}
+              style={{ display: "none" }}
+            />
             <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "20px 0" }}>
               <div style={{ flex: 1, height: 1, background: "#eee" }} />
               <span style={{ fontSize: 12, color: "#999" }}>または、直接入力する</span>
@@ -693,4 +716,16 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
       )}
     </>
   );
+}
+
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      resolve(result.split(",")[1]);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 }

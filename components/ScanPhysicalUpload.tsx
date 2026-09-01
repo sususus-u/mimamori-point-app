@@ -4,7 +4,7 @@
 // 誤読リスクが高いため、既存口座と一致する場合も、初めての場合も、必ずこの画面内で
 // 内容を確認・修正してから、本人の操作(保存ボタン)で保存する。自動保存はしない。
 
-import { useState, type ChangeEvent } from "react";
+import { useEffect, useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import {
   collection,
@@ -47,23 +47,36 @@ export default function ScanPhysicalUpload() {
   const [savedMessage, setSavedMessage] = useState("");
   const [nameUnrecognized, setNameUnrecognized] = useState(false);
 
-  async function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file || !uid) return;
+  // スクショ登録フォームからカメラを直接起動した場合、撮影した画像がsessionStorage経由で
+  // 渡ってくる。マウント時に一度だけ確認し、あれば自動で読み取り処理を始める。
+  useEffect(() => {
+    const raw = sessionStorage.getItem("physical-scan-pending-image");
+    if (!raw) return;
+    sessionStorage.removeItem("physical-scan-pending-image");
+
+    try {
+      const { base64, mediaType } = JSON.parse(raw) as { base64: string; mediaType: string };
+      setPreviewUrl(`data:${mediaType};base64,${base64}`);
+      processImage(base64, mediaType);
+    } catch (error) {
+      console.error(error);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function processImage(base64: string, mediaType: string) {
+    if (!uid) return;
 
     setErrorMessage("");
     setSavedMessage("");
-    setPreviewUrl(URL.createObjectURL(file));
     setIsProcessing(true);
     setMatchedAccountId(null);
 
     try {
-      const base64 = await fileToBase64(file);
-
       const res = await fetch("/api/scan-physical-count", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageBase64: base64, mediaType: file.type }),
+        body: JSON.stringify({ imageBase64: base64, mediaType }),
       });
       const data: ScanResult = await res.json();
 
@@ -97,6 +110,15 @@ export default function ScanPhysicalUpload() {
     } finally {
       setIsProcessing(false);
     }
+  }
+
+  async function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !uid) return;
+
+    setPreviewUrl(URL.createObjectURL(file));
+    const base64 = await fileToBase64(file);
+    await processImage(base64, file.type);
   }
 
   function handleApplyUnitCalc() {
