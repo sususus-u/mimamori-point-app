@@ -375,9 +375,23 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
     <>
       <form onSubmit={handleSubmit}>
         {!isEditMode && (
-          <Link href="/accounts/scan" className="btn-primary" style={{ display: "block", textAlign: "center", textDecoration: "none", marginBottom: 24 }}>
-            スクショで登録する
-          </Link>
+          <>
+            <Link href="/accounts/scan" className="btn-primary" style={{ display: "block", textAlign: "center", textDecoration: "none" }}>
+              画面のスクショで登録
+            </Link>
+            <Link
+              href="/accounts/scan-physical"
+              className="btn-primary"
+              style={{ display: "block", textAlign: "center", textDecoration: "none", marginTop: 12, background: "#8a5a62" }}
+            >
+              現物を撮影して登録
+            </Link>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "20px 0" }}>
+              <div style={{ flex: 1, height: 1, background: "#eee" }} />
+              <span style={{ fontSize: 12, color: "#999" }}>または、直接入力する</span>
+              <div style={{ flex: 1, height: 1, background: "#eee" }} />
+            </div>
+          </>
         )}
 
         {scanProgress && scanProgress.total > 1 && (

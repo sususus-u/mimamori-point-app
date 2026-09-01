@@ -179,6 +179,7 @@ export default function ScanPhysicalUpload() {
       <input
         type="file"
         accept="image/*"
+        capture="environment"
         onChange={handleFileChange}
         disabled={isProcessing}
         style={{ width: "100%", fontSize: 14, marginBottom: 16 }}
