@@ -37,6 +37,9 @@ export default function ScanPhysicalUpload() {
 
   // 確認フォームの状態
   const [matchedAccountId, setMatchedAccountId] = useState<string | null>(null);
+  const [existingBalance, setExistingBalance] = useState<number | null>(null);
+  const [existingFaceValue, setExistingFaceValue] = useState<number | null>(null);
+  const [existingQuantity, setExistingQuantity] = useState<number | null>(null);
   const [name, setName] = useState("");
   const [totalAmount, setTotalAmount] = useState("");
   const [unitAmount, setUnitAmount] = useState("");
@@ -71,6 +74,9 @@ export default function ScanPhysicalUpload() {
     setSavedMessage("");
     setIsProcessing(true);
     setMatchedAccountId(null);
+    setExistingBalance(null);
+    setExistingFaceValue(null);
+    setExistingQuantity(null);
 
     try {
       const res = await fetch("/api/scan-physical-count", {
@@ -101,7 +107,12 @@ export default function ScanPhysicalUpload() {
         );
         const snapshot = await getDocs(q);
         if (!snapshot.empty) {
-          setMatchedAccountId(snapshot.docs[0].id);
+          const existingDoc = snapshot.docs[0];
+          const existingData = existingDoc.data();
+          setMatchedAccountId(existingDoc.id);
+          setExistingBalance(existingData.currentBalance ?? null);
+          setExistingFaceValue(existingData.faceValue ?? null);
+          setExistingQuantity(existingData.itemQuantity ?? null);
         }
       }
     } catch (error) {
@@ -128,7 +139,7 @@ export default function ScanPhysicalUpload() {
     setTotalAmount(String(unit * qty));
   }
 
-  async function handleSave() {
+  async function handleSave(mode: "replace" | "add" = "replace") {
     if (!uid || !name.trim()) {
       setErrorMessage("名前を入力してください。");
       return;
@@ -142,16 +153,23 @@ export default function ScanPhysicalUpload() {
 
     try {
       const now = serverTimestamp();
-      const balanceValue = totalAmount === "" ? null : Number(totalAmount);
+      const newFaceValue = unitAmount === "" ? null : Number(unitAmount);
+      const newQuantity = quantity === "" ? null : Number(quantity);
+      const newBalance = totalAmount === "" ? null : Number(totalAmount);
       const expiryValue = expiryDate ? Timestamp.fromDate(new Date(expiryDate)) : null;
 
       if (matchedAccountId) {
+        const balanceValue =
+          mode === "add" ? (existingBalance ?? 0) + (newBalance ?? 0) : newBalance;
+        const quantityValue =
+          mode === "add" ? (existingQuantity ?? 0) + (newQuantity ?? 0) : newQuantity;
+
         await updateDoc(doc(db, "accounts", matchedAccountId), {
           currentBalance: balanceValue,
           balanceUnit: "円",
           expiryDate: expiryValue,
-          faceValue: unitAmount === "" ? null : Number(unitAmount),
-          itemQuantity: quantity === "" ? null : Number(quantity),
+          faceValue: newFaceValue,
+          itemQuantity: quantityValue,
           lastUpdatedAt: now,
           updatedAt: now,
         });
@@ -163,11 +181,11 @@ export default function ScanPhysicalUpload() {
           category: "gift_certificate",
           isYenBased: true,
           type: "finite",
-          currentBalance: balanceValue,
+          currentBalance: newBalance,
           balanceUnit: "円",
           expiryDate: expiryValue,
-          faceValue: unitAmount === "" ? null : Number(unitAmount),
-          itemQuantity: quantity === "" ? null : Number(quantity),
+          faceValue: newFaceValue,
+          itemQuantity: newQuantity,
           storageLocationMemo: null,
           notificationTiming: { firstStageDays: 90, secondStageDays: 21 },
           lastUpdatedAt: now,
@@ -226,7 +244,7 @@ export default function ScanPhysicalUpload() {
         <div className="card" style={{ marginTop: 8 }}>
           {matchedAccountId && (
             <p style={{ fontSize: 12, color: "var(--brand)", marginBottom: 12 }}>
-              既存のサービスと同じ名前です。内容を確認して更新してください。
+              既存のサービスと同じ名前です。現在の残高:¥{(existingBalance ?? 0).toLocaleString()}
             </p>
           )}
           {itemCount !== null && (
@@ -315,14 +333,38 @@ export default function ScanPhysicalUpload() {
             />
           </div>
 
-          <button
-            onClick={handleSave}
-            disabled={isSaving}
-            className="btn-primary"
-            style={{ width: "100%" }}
-          >
-            {isSaving ? "保存中..." : matchedAccountId ? "この内容で更新する" : "この内容で登録する"}
-          </button>
+          {matchedAccountId ? (
+            <div className="action-row">
+              <button
+                type="button"
+                onClick={() => handleSave("replace")}
+                disabled={isSaving}
+                className="btn-primary"
+                style={{ flex: 1 }}
+              >
+                {isSaving ? "保存中..." : "置き換える"}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSave("add")}
+                disabled={isSaving}
+                className="btn-primary"
+                style={{ flex: 1 }}
+              >
+                {isSaving ? "保存中..." : "今回の分を追加する"}
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => handleSave("replace")}
+              disabled={isSaving}
+              className="btn-primary"
+              style={{ width: "100%" }}
+            >
+              {isSaving ? "保存中..." : "この内容で登録する"}
+            </button>
+          )}
         </div>
       )}
     </div>
