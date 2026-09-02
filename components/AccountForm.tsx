@@ -47,38 +47,38 @@ const CATEGORY_OPTIONS: { value: AccountCategory; label: string }[] = [
 // Pay系は残高・ポイントの両方が候補に出るよう、口座名の候補は別途分けて用意
 const KNOWN_SERVICE_NAMES = [
   "PayPay",
+  "d(ドコモ)",
   "au PAY",
-  "楽天ポイント",
-  "dポイント",
-  "Pontaポイント",
-  "Vポイント",
+  "楽天",
   "WAON",
   "nanaco",
   "Suica",
   "PASMO",
-  "Amazonギフト券",
-  "図書カード",
+  "商品券・ギフトカード",
+  "切手",
   "ANAマイレージクラブ",
   "JALマイレージバンク",
+  "Pontaポイント",
+  "Vポイント",
 ];
 
 // グループ名(サービス名)ごとの、口座名(名前欄)の候補バリエーション。
 // Pay系は「残高」「ポイント」の2種類が並存するため候補を複数用意し、それ以外は1種類のみ
 const SERVICE_ACCOUNT_NAME_VARIANTS: Record<string, string[]> = {
-  "PayPay": ["PayPay残高", "PayPayポイント", "PayPayポイント(期限あり)"],
-  "au PAY": ["au PAY残高", "au PAYポイント", "au PAYポイント(期限あり)"],
-  "楽天ポイント": ["楽天ポイント", "楽天ポイント(期間限定)"],
-  "dポイント": ["dポイント", "dポイント(期間限定)"],
+  "PayPay": ["PayPay残高", "PayPayポイント", "PayPayポイント(期間限定)"],
+  "d(ドコモ)": ["d払い残高", "dポイント", "dポイント(期間限定)"],
+  "au PAY": ["au PAY残高"],
+  "楽天": ["楽天ペイ残高", "楽天ポイント", "楽天ポイント(期間限定)"],
+  "WAON": ["WAON残高", "WAON POINT"],
+  "nanaco": ["nanaco残高", "nanacoポイント"],
+  "Suica": ["Suica残高"],
+  "PASMO": ["PASMO残高"],
+  "商品券・ギフトカード": ["アマゾンギフト券", "図書カード"],
+  "切手": ["切手"],
+  "ANAマイレージクラブ": ["ANAマイル", "ANA Pay残高"],
+  "JALマイレージバンク": ["JALマイル", "JAL Pay残高"],
   "Pontaポイント": ["Pontaポイント", "Pontaポイント(期間限定)"],
-  "Vポイント": ["Vポイント", "Vポイント(期間限定)"],
-  "WAON": ["WAON"],
-  "nanaco": ["nanaco"],
-  "Suica": ["Suica"],
-  "PASMO": ["PASMO"],
-  "Amazonギフト券": ["Amazonギフト券"],
-  "図書カード": ["図書カード"],
-  "ANAマイレージクラブ": ["ANAマイレージクラブ"],
-  "JALマイレージバンク": ["JALマイレージバンク"],
+  "Vポイント": ["Vポイント", "Vポイント(期間限定)", "VポイントPay残高"],
 };
 
 // グループ名が候補にない場合、名前欄の候補として出す全サービスの口座名一覧
@@ -593,7 +593,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
               type="text"
               value={groupName}
               onChange={(e) => setGroupName(e.target.value)}
-              placeholder="例:楽天ポイント"
+              placeholder="例:PayPay"
               list="known-service-names"
               style={{ paddingRight: groupName ? 32 : undefined }}
             />
