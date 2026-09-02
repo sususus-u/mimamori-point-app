@@ -51,7 +51,7 @@ export const CATEGORY_DEFAULTS: Record<
     isYenBased: true,
     type: "finite",
     notificationDaysBefore: [90, 21],
-    label: "商品券・ギフトカード",
+    label: "商品券・切手",
   },
   miles: {
     isYenBased: false,

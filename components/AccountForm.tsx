@@ -35,7 +35,7 @@ import {
 const CATEGORY_OPTIONS: { value: AccountCategory; label: string }[] = [
   { value: "electronic_money", label: "電子マネー" },
   { value: "points", label: "ポイント" },
-  { value: "gift_certificate", label: "商品券・ギフトカード" },
+  { value: "gift_certificate", label: "商品券・切手" },
   { value: "miles", label: "マイル" },
   { value: "coupon", label: "クーポン" },
   { value: "stamp_card", label: "スタンプカード" },
