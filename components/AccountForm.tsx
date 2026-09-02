@@ -23,6 +23,7 @@ import {
   Timestamp,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { guessServiceInfo } from "@/lib/knownServices";
 import { useAuth } from "@/contexts/AuthProvider";
 import {
   CATEGORY_DEFAULTS,
@@ -47,7 +48,6 @@ const CATEGORY_OPTIONS: { value: AccountCategory; label: string }[] = [
 const KNOWN_SERVICE_NAMES = [
   "PayPay",
   "au PAY",
-  "LINE Pay",
   "楽天ポイント",
   "dポイント",
   "Pontaポイント",
@@ -61,6 +61,28 @@ const KNOWN_SERVICE_NAMES = [
   "ANAマイレージクラブ",
   "JALマイレージバンク",
 ];
+
+// グループ名(サービス名)ごとの、口座名(名前欄)の候補バリエーション。
+// Pay系は「残高」「ポイント」の2種類が並存するため候補を複数用意し、それ以外は1種類のみ
+const SERVICE_ACCOUNT_NAME_VARIANTS: Record<string, string[]> = {
+  "PayPay": ["PayPay残高", "PayPayポイント", "PayPayポイント(期限あり)"],
+  "au PAY": ["au PAY残高", "au PAYポイント", "au PAYポイント(期限あり)"],
+  "楽天ポイント": ["楽天ポイント", "楽天ポイント(期間限定)"],
+  "dポイント": ["dポイント", "dポイント(期間限定)"],
+  "Pontaポイント": ["Pontaポイント", "Pontaポイント(期間限定)"],
+  "Vポイント": ["Vポイント", "Vポイント(期間限定)"],
+  "WAON": ["WAON"],
+  "nanaco": ["nanaco"],
+  "Suica": ["Suica"],
+  "PASMO": ["PASMO"],
+  "Amazonギフト券": ["Amazonギフト券"],
+  "図書カード": ["図書カード"],
+  "ANAマイレージクラブ": ["ANAマイレージクラブ"],
+  "JALマイレージバンク": ["JALマイレージバンク"],
+};
+
+// グループ名が候補にない場合、名前欄の候補として出す全サービスの口座名一覧
+const KNOWN_ACCOUNT_NAMES = Object.values(SERVICE_ACCOUNT_NAME_VARIANTS).flat();
 
 export default function AccountForm({ accountId }: { accountId?: string }) {
   const router = useRouter();
@@ -112,6 +134,17 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
   const isOther = category === "other";
   const isGiftCertificate = category === "gift_certificate";
 
+  // グループ名に応じた名前欄の候補(該当サービスがなければ全サービスの一覧にフォールバック)
+  const nameCandidates = SERVICE_ACCOUNT_NAME_VARIANTS[groupName.trim()] ?? KNOWN_ACCOUNT_NAMES;
+
+  // グループ名の候補が1つだけに定まる場合、名前が未入力なら自動でセットする
+  useEffect(() => {
+    const variants = SERVICE_ACCOUNT_NAME_VARIANTS[groupName.trim()];
+    if (variants && variants.length === 1 && name === "") {
+      setName(variants[0]);
+    }
+  }, [groupName]);
+
   // 商品券・ギフトカードの場合、残高は額面×枚数から自動計算する(手入力させない)
   useEffect(() => {
     if (category !== "gift_certificate") return;
@@ -121,6 +154,19 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
     if (Number.isNaN(fv) || Number.isNaN(qty)) return;
     setBalance(String(fv * qty));
   }, [faceValue, itemQuantity, category]);
+
+  // 名前欄が既知の口座名候補と完全一致した場合(候補から選んだ・自動入力された場合)、
+  // その名前から種類・円建てフラグを推測して連動させる
+  useEffect(() => {
+    if (!KNOWN_ACCOUNT_NAMES.includes(name)) return;
+    const info = guessServiceInfo(name, null);
+    setCategory(info.category);
+    const defaults = CATEGORY_DEFAULTS[info.category];
+    setIsYenBased(info.isYenBased);
+    setAccountType(defaults.type);
+    setFirstStageDays(defaults.notificationDaysBefore[0]);
+    setSecondStageDays(defaults.notificationDaysBefore[1]);
+  }, [name]);
 
   // 編集モードの場合、既存データを読み込んでフォームに反映する
   useEffect(() => {
@@ -541,36 +587,95 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
         )}
 
         <div className="field">
-          <label>名前</label>
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => {
-              setName(e.target.value);
-              setDuplicateAccount(null);
-            }}
-            onBlur={handleNameBlur}
-            placeholder="例:PayPay残高"
-          />
-        </div>
-
-        <div className="field">
           <label>グループ名(任意)</label>
-          <input
-            type="text"
-            value={groupName}
-            onChange={(e) => setGroupName(e.target.value)}
-            placeholder="例:楽天ポイント"
-            list="known-service-names"
-          />
+          <div style={{ position: "relative" }}>
+            <input
+              type="text"
+              value={groupName}
+              onChange={(e) => setGroupName(e.target.value)}
+              placeholder="例:楽天ポイント"
+              list="known-service-names"
+              style={{ paddingRight: groupName ? 32 : undefined }}
+            />
+            {groupName && (
+              <button
+                type="button"
+                onClick={() => setGroupName("")}
+                aria-label="グループ名をクリア"
+                style={{
+                  position: "absolute",
+                  right: 8,
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  border: "none",
+                  background: "none",
+                  color: "#999",
+                  fontSize: 16,
+                  cursor: "pointer",
+                  padding: 4,
+                  lineHeight: 1,
+                }}
+              >
+                ×
+              </button>
+            )}
+          </div>
           <datalist id="known-service-names">
             {KNOWN_SERVICE_NAMES.map((serviceName) => (
               <option key={serviceName} value={serviceName} />
             ))}
           </datalist>
           <p style={{ fontSize: 13, color: "#999", marginTop: 6 }}>
-            サービス名だけを入れてください(例:PayPay)。「残高」「ポイント」などの区別は、上の「名前」欄の方に入れます。同じグループ名を付けておくと、一覧の「サービス別」タブでまとめて表示されます
+            サービス名だけを入れてください(例:PayPay)。「残高」「ポイント」などの区別は、下の「名前」欄の方に入れます。同じグループ名を付けておくと、一覧の「サービス別」タブでまとめて表示されます
           </p>
+        </div>
+
+        <div className="field">
+          <label>名前</label>
+          <div style={{ position: "relative" }}>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => {
+                setName(e.target.value);
+                setDuplicateAccount(null);
+              }}
+              onBlur={handleNameBlur}
+              placeholder="例:PayPay残高"
+              list="known-account-names"
+              style={{ paddingRight: name ? 32 : undefined }}
+            />
+            {name && (
+              <button
+                type="button"
+                onClick={() => {
+                  setName("");
+                  setDuplicateAccount(null);
+                }}
+                aria-label="名前をクリア"
+                style={{
+                  position: "absolute",
+                  right: 8,
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  border: "none",
+                  background: "none",
+                  color: "#999",
+                  fontSize: 16,
+                  cursor: "pointer",
+                  padding: 4,
+                  lineHeight: 1,
+                }}
+              >
+                ×
+              </button>
+            )}
+          </div>
+          <datalist id="known-account-names">
+            {nameCandidates.map((candidateName) => (
+              <option key={candidateName} value={candidateName} />
+            ))}
+          </datalist>
         </div>
 
         <div className="field">
