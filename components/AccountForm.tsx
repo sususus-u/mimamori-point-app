@@ -14,6 +14,9 @@ import {
   collection,
   doc,
   getDoc,
+  getDocs,
+  query,
+  where,
   updateDoc,
   deleteDoc,
   serverTimestamp,
@@ -96,6 +99,14 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
   // スクショ読み取りの確信度が低かった項目(true の場合、枠色と注意文で強調する)
   const [balanceLowConfidence, setBalanceLowConfidence] = useState(false);
   const [expiryLowConfidence, setExpiryLowConfidence] = useState(false);
+  // 新規登録時、名前欄からフォーカスが外れた際に同名の既存サービスが見つかった場合の情報
+  const [duplicateAccount, setDuplicateAccount] = useState<{
+    id: string;
+    currentBalance: number | null;
+    type: AccountType;
+    faceValue: number | null;
+    itemQuantity: number | null;
+  } | null>(null);
 
   const isStampCard = category === "stamp_card";
   const isOther = category === "other";
@@ -223,6 +234,34 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
     router.push("/accounts/scan-physical");
   }
 
+  // 新規登録時のみ、名前欄からフォーカスが外れたタイミングで同名の既存サービスを検索する
+  async function handleNameBlur() {
+    if (isEditMode || !uid || !name.trim()) return;
+    try {
+      const q = query(
+        collection(db, "accounts"),
+        where("ownerId", "==", uid),
+        where("name", "==", name.trim())
+      );
+      const snap = await getDocs(q);
+      if (snap.empty) {
+        setDuplicateAccount(null);
+        return;
+      }
+      const existing = snap.docs[0];
+      const data = existing.data() as AccountDoc;
+      setDuplicateAccount({
+        id: existing.id,
+        currentBalance: data.currentBalance ?? null,
+        type: data.type,
+        faceValue: data.faceValue ?? null,
+        itemQuantity: data.itemQuantity ?? null,
+      });
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
   function handleCategoryChange(newCategory: AccountCategory) {
     setCategory(newCategory);
     const defaults = CATEGORY_DEFAULTS[newCategory];
@@ -233,63 +272,76 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
     setBalanceUnit(defaults.isYenBased ? "円" : "");
   }
 
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
-    setErrorMessage("");
-
+  // 登録・置き換え・追加のいずれでも使う入力チェック。エラーがあれば errorMessage をセットして false を返す
+  function validateForm(): boolean {
     if (!uid) {
       setErrorMessage("ログイン処理が完了していません。少し待ってからもう一度お試しください。");
-      return;
+      return false;
     }
     if (!name.trim()) {
       setErrorMessage("名前を入力してください。");
-      return;
+      return false;
     }
     if (isOther && !customCategoryLabel.trim()) {
       setErrorMessage("「その他」を選んだ場合は、種類の名前を入力してください。");
-      return;
+      return false;
     }
     if (isGiftCertificate && (faceValue === "" || itemQuantity === "")) {
       setErrorMessage("額面と枚数を入力してください。");
-      return;
+      return false;
     }
+    return true;
+  }
+
+  // 今のフォーム入力から、accounts ドキュメントのペイロードと updates サブコレクション用レコードを組み立てる
+  function buildPayloadAndUpdateRecord() {
+    const now = serverTimestamp();
+    const payload = {
+      ownerId: uid,
+      name: name.trim(),
+      groupName: groupName.trim() || null,
+      category,
+      ...(isOther ? { customCategoryLabel: customCategoryLabel.trim() } : {}),
+      isYenBased,
+      type: accountType,
+      ...(isStampCard
+        ? {}
+        : {
+            currentBalance: balance === "" ? null : Number(balance),
+            balanceUnit,
+            faceValue: faceValue === "" ? null : Number(faceValue),
+            itemQuantity: itemQuantity === "" ? null : Number(itemQuantity),
+          }),
+      expiryDate: expiryDate ? Timestamp.fromDate(new Date(expiryDate)) : null,
+      storageLocationMemo: storageLocationMemo.trim() || null,
+      notificationTiming: {
+        firstStageDays: Number(firstStageDays),
+        secondStageDays: Number(secondStageDays),
+      },
+      lastUpdatedAt: now,
+      updatedAt: now,
+    };
+
+    const updateRecord = {
+      recordedAt: now,
+      balance: balance === "" ? null : Number(balance),
+      expiryDate: expiryDate ? Timestamp.fromDate(new Date(expiryDate)) : null,
+      source: "manual" as const,
+      confirmedByUser: true,
+    };
+
+    return { now, payload, updateRecord };
+  }
+
+  // 重複が見つからなかった場合、および「新たに登録する」を選んだ場合の処理
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    setErrorMessage("");
+    if (!validateForm()) return;
 
     setIsSubmitting(true);
     try {
-      const now = serverTimestamp();
-      const payload = {
-        ownerId: uid,
-        name: name.trim(),
-        groupName: groupName.trim() || null,
-        category,
-        ...(isOther ? { customCategoryLabel: customCategoryLabel.trim() } : {}),
-        isYenBased,
-        type: accountType,
-        ...(isStampCard
-          ? {}
-          : {
-              currentBalance: balance === "" ? null : Number(balance),
-              balanceUnit,
-              faceValue: faceValue === "" ? null : Number(faceValue),
-              itemQuantity: itemQuantity === "" ? null : Number(itemQuantity),
-            }),
-        expiryDate: expiryDate ? Timestamp.fromDate(new Date(expiryDate)) : null,
-        storageLocationMemo: storageLocationMemo.trim() || null,
-        notificationTiming: {
-          firstStageDays: Number(firstStageDays),
-          secondStageDays: Number(secondStageDays),
-        },
-        lastUpdatedAt: now,
-        updatedAt: now,
-      };
-
-      const updateRecord = {
-        recordedAt: now,
-        balance: balance === "" ? null : Number(balance),
-        expiryDate: expiryDate ? Timestamp.fromDate(new Date(expiryDate)) : null,
-        source: "manual" as const,
-        confirmedByUser: true,
-      };
+      const { now, payload, updateRecord } = buildPayloadAndUpdateRecord();
 
       if (isEditMode && accountId) {
         await updateDoc(doc(db, "accounts", accountId), payload);
@@ -322,6 +374,64 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
         }
         router.push("/");
       }
+    } catch (error) {
+      console.error(error);
+      setErrorMessage("保存に失敗しました。もう一度お試しください。");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  // 「置き換える」: 見つかった既存口座を、今のフォーム入力で上書きする
+  async function handleReplaceExisting() {
+    setErrorMessage("");
+    if (!validateForm()) return;
+    if (!duplicateAccount) return;
+
+    setIsSubmitting(true);
+    try {
+      const { payload, updateRecord } = buildPayloadAndUpdateRecord();
+      await updateDoc(doc(db, "accounts", duplicateAccount.id), payload);
+      await addDoc(collection(db, "accounts", duplicateAccount.id, "updates"), updateRecord);
+      router.push("/");
+    } catch (error) {
+      console.error(error);
+      setErrorMessage("保存に失敗しました。もう一度お試しください。");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  // 「今回の分を追加する」: 見つかった既存口座の残高・額面・枚数に、今回の入力値を加算する
+  async function handleAddToExisting() {
+    setErrorMessage("");
+    if (!validateForm()) return;
+    if (!duplicateAccount) return;
+
+    setIsSubmitting(true);
+    try {
+      const now = serverTimestamp();
+      const newBalance = (duplicateAccount.currentBalance ?? 0) + (balance === "" ? 0 : Number(balance));
+      // 額面は1枚あたりの単価なので加算せず、今回入力した値で上書きする
+      const newFaceValue = faceValue === "" ? duplicateAccount.faceValue ?? 0 : Number(faceValue);
+      const newItemQuantity =
+        (duplicateAccount.itemQuantity ?? 0) + (itemQuantity === "" ? 0 : Number(itemQuantity));
+
+      await updateDoc(doc(db, "accounts", duplicateAccount.id), {
+        currentBalance: newBalance,
+        faceValue: newFaceValue,
+        itemQuantity: newItemQuantity,
+        lastUpdatedAt: now,
+        updatedAt: now,
+      });
+      await addDoc(collection(db, "accounts", duplicateAccount.id, "updates"), {
+        recordedAt: now,
+        balance: newBalance,
+        expiryDate: expiryDate ? Timestamp.fromDate(new Date(expiryDate)) : null,
+        source: "manual" as const,
+        confirmedByUser: true,
+      });
+      router.push("/");
     } catch (error) {
       console.error(error);
       setErrorMessage("保存に失敗しました。もう一度お試しください。");
@@ -435,7 +545,11 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
           <input
             type="text"
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => {
+              setName(e.target.value);
+              setDuplicateAccount(null);
+            }}
+            onBlur={handleNameBlur}
             placeholder="例:PayPay残高"
           />
         </div>
@@ -558,21 +672,51 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
           <div style={{ display: "flex", gap: 12 }}>
             <div className="field" style={{ flex: 1 }}>
               <label>額面</label>
-              <input
-                type="number"
-                value={faceValue}
-                onChange={(e) => setFaceValue(e.target.value)}
-                placeholder="1枚あたり"
-              />
+              <div style={{ position: "relative" }}>
+                <input
+                  type="number"
+                  value={faceValue}
+                  onChange={(e) => setFaceValue(e.target.value)}
+                  placeholder="1枚あたり"
+                  style={{ paddingRight: 32 }}
+                />
+                <span
+                  style={{
+                    position: "absolute",
+                    right: 12,
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    fontSize: 13,
+                    color: "#999",
+                  }}
+                >
+                  円
+                </span>
+              </div>
             </div>
             <div className="field" style={{ flex: 1 }}>
               <label>枚数</label>
-              <input
-                type="number"
-                value={itemQuantity}
-                onChange={(e) => setItemQuantity(e.target.value)}
-                placeholder="枚数"
-              />
+              <div style={{ position: "relative" }}>
+                <input
+                  type="number"
+                  value={itemQuantity}
+                  onChange={(e) => setItemQuantity(e.target.value)}
+                  placeholder="枚数"
+                  style={{ paddingRight: 32 }}
+                />
+                <span
+                  style={{
+                    position: "absolute",
+                    right: 12,
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    fontSize: 13,
+                    color: "#999",
+                  }}
+                >
+                  枚
+                </span>
+              </div>
             </div>
           </div>
         )}
@@ -627,9 +771,43 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
 
         {errorMessage && <p style={{ fontSize: 13, color: "#b3261e", marginBottom: 20 }}>{errorMessage}</p>}
 
-        <button type="submit" disabled={isSubmitting || isDeleting} className="btn-primary">
-          {isSubmitting ? "保存中..." : isEditMode ? "更新する" : "登録する"}
-        </button>
+        {!isEditMode && duplicateAccount ? (
+          <>
+            <p style={{ fontSize: 13, color: "#555", marginBottom: 12 }}>
+              同じ名前のサービスが既にあります。現在の残高:¥{duplicateAccount.currentBalance ?? 0}
+              {duplicateAccount.itemQuantity !== null && duplicateAccount.itemQuantity !== undefined && (
+                <>(枚数:{duplicateAccount.itemQuantity}枚)</>
+              )}
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <button
+                type="button"
+                onClick={handleReplaceExisting}
+                disabled={isSubmitting || isDeleting}
+                className="btn-primary"
+              >
+                {isSubmitting ? "保存中..." : "置き換える"}
+              </button>
+              {duplicateAccount.type === "finite" && (
+                <button
+                  type="button"
+                  onClick={handleAddToExisting}
+                  disabled={isSubmitting || isDeleting}
+                  className="btn-primary"
+                >
+                  {isSubmitting ? "保存中..." : "今回の分を追加する"}
+                </button>
+              )}
+              <button type="submit" disabled={isSubmitting || isDeleting} className="btn-primary">
+                {isSubmitting ? "保存中..." : "新たに登録する"}
+              </button>
+            </div>
+          </>
+        ) : (
+          <button type="submit" disabled={isSubmitting || isDeleting} className="btn-primary">
+            {isSubmitting ? "保存中..." : isEditMode ? "更新する" : "登録する"}
+          </button>
+        )}
 
         {isEditMode && (
           <div className="action-row" style={{ marginTop: 12 }}>
