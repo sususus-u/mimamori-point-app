@@ -1,8 +1,10 @@
 "use client";
 
 // 口座一覧。AppShellの中に表示される想定(独自のヘッダーは持たない)。
-// 「期限あり」タブは期限月ごとにグルーピングし、直近3ヶ月は展開・それ以降は折りたたむ。
-// 「期限なし」タブは貯蓄枠として別扱い。「サービス別」タブはグループ名でまとめる。
+// 「期間限定」タブ(キーはwithExpiryのまま)は、期限日が入っているものに加えて
+// 名前に「期間限定」を含むもの(期限日未入力でも対象)を集める。期限月ごとにグルーピングし、
+// 期限未入力のものは「期限未設定」セクションにまとめて最上部に表示、直近3ヶ月は展開・それ以降は折りたたむ。
+// 「期限なし」タブはどちらにも当てはまらないものを別扱い。「サービス別」タブはグループ名でまとめる。
 // 登録・スクショの導線は /accounts/new 側の大きなCTAに集約したため、ここでは持たない。
 // クイック更新のみ、控えめなリンクとして残す。
 
@@ -96,9 +98,11 @@ export default function AccountList() {
     return () => unsubscribe();
   }, [uid]);
 
-  const withExpiry = accounts.filter((a) => a.expiryDate);
+  const isLimitedOrHasExpiry = (a: AccountWithId) => Boolean(a.expiryDate) || a.name.includes("期間限定");
+
+  const withExpiry = accounts.filter(isLimitedOrHasExpiry);
   const noExpiry = sortAccounts(
-    accounts.filter((a) => !a.expiryDate),
+    accounts.filter((a) => !isLimitedOrHasExpiry(a)),
     sortMode
   );
 
@@ -111,7 +115,10 @@ export default function AccountList() {
     yenTotal: noExpiry.reduce((sum, a) => sum + (getYenValue(a) ?? 0), 0),
   };
 
-  const sorted = [...withExpiry].sort((a, b) => {
+  const withExpiryDated = withExpiry.filter((a) => a.expiryDate);
+  const withExpiryUndated = withExpiry.filter((a) => !a.expiryDate);
+
+  const sorted = [...withExpiryDated].sort((a, b) => {
     const da = (a.expiryDate as Timestamp).toDate().getTime();
     const dbTime = (b.expiryDate as Timestamp).toDate().getTime();
     return da - dbTime;
@@ -187,7 +194,7 @@ export default function AccountList() {
         }}
       >
         {[
-          { key: "withExpiry", label: "期限あり" },
+          { key: "withExpiry", label: "期間限定" },
           { key: "noExpiry", label: "期限なし" },
           { key: "byGroup", label: "サービス別" },
         ].map((t) => (
@@ -237,8 +244,48 @@ export default function AccountList() {
 
           {withExpirySortMode === "expiry" ? (
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              {monthKeys.length === 0 && (
+              {monthKeys.length === 0 && withExpiryUndated.length === 0 && (
                 <p style={{ fontSize: 14, color: "#999" }}>登録されたサービスがありません</p>
+              )}
+              {withExpiryUndated.length > 0 && (
+                <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+                  <p
+                    style={{
+                      margin: 0,
+                      padding: "10px 14px",
+                      fontSize: 13,
+                      fontWeight: 500,
+                      background: "#faf8f6",
+                    }}
+                  >
+                    期限未設定
+                  </p>
+                  <div>
+                    {withExpiryUndated.map((acc) => (
+                      <Link
+                        key={acc.id}
+                        href={`/accounts/${acc.id}/edit`}
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          padding: "12px 14px",
+                          fontSize: 14,
+                          borderTop: "0.5px solid #f0f0f0",
+                          textDecoration: "none",
+                          color: "inherit",
+                        }}
+                      >
+                        <div>
+                          <p style={{ margin: 0, fontWeight: 500 }}>{acc.name}</p>
+                          <p style={{ margin: 0, fontSize: 12, color: "#999" }}>
+                            {categoryLabel(acc)}
+                          </p>
+                        </div>
+                        <p style={{ margin: 0 }}>{balanceDisplay(acc)}</p>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
               )}
               {monthKeys.map((key, index) => {
                 const isRecent = index < 3;

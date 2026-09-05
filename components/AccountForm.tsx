@@ -88,6 +88,16 @@ const KNOWN_ACCOUNT_NAMES = Object.values(SERVICE_ACCOUNT_NAME_VARIANTS).flat();
 // 単位(balanceUnit)のプリセット選択肢。ここにない値は「その他」扱いで自由入力欄に入る
 const KNOWN_BALANCE_UNITS = ["円", "pt", "マイル", "枚"];
 
+// 種類(category)を選んだ際に単位へ自動セットするデフォルト値。
+// stamp_card(単位の概念なし)とother(都度選択)は含めず、既存の選択をそのまま残す
+const CATEGORY_UNIT_DEFAULTS: Partial<Record<AccountCategory, string>> = {
+  electronic_money: "円",
+  points: "pt",
+  gift_certificate: "円",
+  miles: "マイル",
+  coupon: "枚",
+};
+
 export default function AccountForm({ accountId }: { accountId?: string }) {
   const router = useRouter();
   const { uid, isLoading } = useAuth();
@@ -191,6 +201,10 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
     setAccountType(defaults.type);
     setFirstStageDays(defaults.notificationDaysBefore[0]);
     setSecondStageDays(defaults.notificationDaysBefore[1]);
+    const unitDefault = CATEGORY_UNIT_DEFAULTS[info.category];
+    if (unitDefault) {
+      setBalanceUnitFromValue(unitDefault);
+    }
   }, [name]);
 
   // 編集モードの場合、既存データを読み込んでフォームに反映する
@@ -354,7 +368,10 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
     setAccountType(defaults.type);
     setFirstStageDays(defaults.notificationDaysBefore[0]);
     setSecondStageDays(defaults.notificationDaysBefore[1]);
-    setBalanceUnitFromValue(defaults.isYenBased ? "円" : "");
+    const unitDefault = CATEGORY_UNIT_DEFAULTS[newCategory];
+    if (unitDefault) {
+      setBalanceUnitFromValue(unitDefault);
+    }
   }
 
   // 登録・置き換え・追加のいずれでも使う入力チェック。エラーがあれば errorMessage をセットして false を返す
@@ -937,6 +954,9 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
           )}
           <p style={{ fontSize: 13, color: "#999", marginTop: 6 }}>
             空欄の場合は「期限なし」タブに表示されます
+          </p>
+          <p style={{ fontSize: 13, color: "#999", marginTop: 6 }}>
+            名前に「期間限定」が含まれる場合は、期限が分からなくても「期間限定」タブに表示されます。期限が分かり次第、入力してください。
           </p>
         </div>
 
