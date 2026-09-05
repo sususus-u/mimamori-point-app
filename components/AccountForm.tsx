@@ -651,9 +651,20 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
         {scanProgress && scanProgress.total > 1 && (
           <div
             className="card"
-            style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 14, marginBottom: 20 }}
+            style={{
+              display: "flex",
+              alignItems: "flex-start",
+              gap: 8,
+              fontSize: 15,
+              fontWeight: 700,
+              padding: "14px 16px",
+              marginBottom: 20,
+              background: "var(--brand)",
+              color: "#fff",
+              border: "none",
+            }}
           >
-            <Camera size={16} style={{ flexShrink: 0, marginTop: 2, color: "var(--brand)" }} />
+            <Camera size={20} style={{ flexShrink: 0, marginTop: 2, color: "#fff" }} />
             <span>
               スクショから{scanProgress.total}件を検出しました。{scanProgress.current}件目/
               {scanProgress.total}件目の内容を確認して登録してください。
