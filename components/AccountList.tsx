@@ -14,6 +14,7 @@ import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthProvider";
 import { CATEGORY_DEFAULTS, type AccountCategory, type AccountDoc } from "@/types/firestore";
 import NotificationSetup from "@/components/NotificationSetup";
+import { getYenValue } from "@/lib/accountUtils";
 
 interface AccountWithId extends AccountDoc {
   id: string;
@@ -35,6 +36,12 @@ function balanceDisplay(acc: AccountWithId) {
       acc.currentBalance,
       acc.balanceUnit
     )}`;
+  }
+  if (!acc.isYenBased && acc.yenExchangeRate != null) {
+    const yenValue = getYenValue(acc);
+    if (yenValue !== null) {
+      return `${formatBalance(acc.currentBalance, acc.balanceUnit)}(${yenValue.toLocaleString()}円相当)`;
+    }
   }
   return formatBalance(acc.currentBalance, acc.balanceUnit);
 }
@@ -59,9 +66,9 @@ function sortAccounts(list: AccountWithId[], mode: "balance" | "name"): AccountW
     return [...list].sort((a, b) => a.name.localeCompare(b.name, "ja"));
   }
   // 残高順:円建てのものだけ金額の大きい順に並べ、非円建て(マイル等、比較できない)は末尾に名前順で並べる
-  const yenItems = list.filter((a) => a.isYenBased && typeof a.currentBalance === "number");
-  const others = list.filter((a) => !(a.isYenBased && typeof a.currentBalance === "number"));
-  yenItems.sort((a, b) => (b.currentBalance ?? 0) - (a.currentBalance ?? 0));
+  const yenItems = list.filter((a) => getYenValue(a) !== null);
+  const others = list.filter((a) => getYenValue(a) === null);
+  yenItems.sort((a, b) => (getYenValue(b) ?? 0) - (getYenValue(a) ?? 0));
   others.sort((a, b) => a.name.localeCompare(b.name, "ja"));
   return [...yenItems, ...others];
 }
@@ -94,6 +101,15 @@ export default function AccountList() {
     accounts.filter((a) => !a.expiryDate),
     sortMode
   );
+
+  const withExpirySummary = {
+    count: withExpiry.length,
+    yenTotal: withExpiry.reduce((sum, a) => sum + (getYenValue(a) ?? 0), 0),
+  };
+  const noExpirySummary = {
+    count: noExpiry.length,
+    yenTotal: noExpiry.reduce((sum, a) => sum + (getYenValue(a) ?? 0), 0),
+  };
 
   const sorted = [...withExpiry].sort((a, b) => {
     const da = (a.expiryDate as Timestamp).toDate().getTime();
@@ -139,6 +155,25 @@ export default function AccountList() {
     <div>
       <div style={{ marginBottom: 16 }}>
         <NotificationSetup />
+      </div>
+
+      <div
+        className="card"
+        style={{
+          display: "flex",
+          gap: 12,
+          flexWrap: "wrap",
+          fontSize: 13,
+          marginBottom: 12,
+          color: "#666",
+        }}
+      >
+        <p style={{ margin: 0 }}>
+          期限あり:{withExpirySummary.count}件 合計¥{withExpirySummary.yenTotal.toLocaleString()}
+        </p>
+        <p style={{ margin: 0 }}>
+          期限なし:{noExpirySummary.count}件 合計¥{noExpirySummary.yenTotal.toLocaleString()}
+        </p>
       </div>
 
       <div

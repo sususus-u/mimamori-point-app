@@ -124,6 +124,9 @@ export interface AccountDoc {
   isYenBased: boolean;
   type: AccountType;
 
+  /** 1単位(pt等)あたりの円換算レート。isYenBasedがtrueの場合のみ意味を持つ。未設定はレート1(1pt=1円)として扱う */
+  yenExchangeRate?: number | null;
+
   /** 残高。スタンプカードは概念自体を持たないため undefined */
   currentBalance?: number;
   /** 表示単位。円建てなら "円"、非円建てなら "pt" "マイル" "枚" など */

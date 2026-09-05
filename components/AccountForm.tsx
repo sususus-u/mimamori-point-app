@@ -24,6 +24,7 @@ import {
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { guessServiceInfo } from "@/lib/knownServices";
+import { getYenValue } from "@/lib/accountUtils";
 import { useAuth } from "@/contexts/AuthProvider";
 import {
   CATEGORY_DEFAULTS,
@@ -35,7 +36,7 @@ import {
 
 const CATEGORY_OPTIONS: { value: AccountCategory; label: string }[] = [
   { value: "electronic_money", label: "電子マネー" },
-  { value: "points", label: "ポイント" },
+  { value: "points", label: "ポイント(pt)" },
   { value: "gift_certificate", label: "商品券・切手" },
   { value: "miles", label: "マイル" },
   { value: "coupon", label: "クーポン" },
@@ -84,6 +85,9 @@ const SERVICE_ACCOUNT_NAME_VARIANTS: Record<string, string[]> = {
 // グループ名が候補にない場合、名前欄の候補として出す全サービスの口座名一覧
 const KNOWN_ACCOUNT_NAMES = Object.values(SERVICE_ACCOUNT_NAME_VARIANTS).flat();
 
+// 単位(balanceUnit)のプリセット選択肢。ここにない値は「その他」扱いで自由入力欄に入る
+const KNOWN_BALANCE_UNITS = ["円", "pt", "マイル", "枚"];
+
 export default function AccountForm({ accountId }: { accountId?: string }) {
   const router = useRouter();
   const { uid, isLoading } = useAuth();
@@ -97,7 +101,14 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
   const [isYenBased, setIsYenBased] = useState(CATEGORY_DEFAULTS.electronic_money.isYenBased);
   const [accountType, setAccountType] = useState<AccountType>(CATEGORY_DEFAULTS.electronic_money.type);
   const [balance, setBalance] = useState("");
-  const [balanceUnit, setBalanceUnit] = useState("円");
+  const [balanceUnitOption, setBalanceUnitOption] = useState("円");
+  const [customBalanceUnit, setCustomBalanceUnit] = useState("");
+  const balanceUnit = balanceUnitOption === "その他" ? customBalanceUnit : balanceUnitOption;
+  const [yenExchangeRate, setYenExchangeRate] = useState("");
+  const [exchangeUnitCount, setExchangeUnitCount] = useState("");
+  const [exchangeUnitYen, setExchangeUnitYen] = useState("");
+  // 編集モードで読み込んだ既存のyenExchangeRateを、ユーザーがこの2欄を触るまで上書きしないためのフラグ
+  const [exchangeRateTouched, setExchangeRateTouched] = useState(false);
   const [faceValue, setFaceValue] = useState("");
   const [itemQuantity, setItemQuantity] = useState("");
   const [expiryDate, setExpiryDate] = useState("");
@@ -155,6 +166,20 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
     setBalance(String(fv * qty));
   }, [faceValue, itemQuantity, category]);
 
+  // 換算元(exchangeUnitCount)・換算先(exchangeUnitYen)の両方が入力されていればレートを自動計算する。
+  // 編集モードで読み込んだ既存レートを、ユーザーがこの2欄を触るまで上書きしないよう exchangeRateTouched で制御する
+  useEffect(() => {
+    if (!exchangeRateTouched) return;
+    if (exchangeUnitCount === "" || exchangeUnitYen === "") {
+      setYenExchangeRate("");
+      return;
+    }
+    const count = Number(exchangeUnitCount);
+    const yen = Number(exchangeUnitYen);
+    if (Number.isNaN(count) || Number.isNaN(yen) || count <= 0) return;
+    setYenExchangeRate(String(yen / count));
+  }, [exchangeUnitCount, exchangeUnitYen, exchangeRateTouched]);
+
   // 名前欄が既知の口座名候補と完全一致した場合(候補から選んだ・自動入力された場合)、
   // その名前から種類・円建てフラグを推測して連動させる
   useEffect(() => {
@@ -190,7 +215,10 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
             ? ""
             : String(data.currentBalance)
         );
-        setBalanceUnit(data.balanceUnit ?? "円");
+        setBalanceUnitFromValue(data.balanceUnit ?? "円");
+        if (data.yenExchangeRate !== undefined && data.yenExchangeRate !== null) {
+          setYenExchangeRate(String(data.yenExchangeRate));
+        }
         if (data.faceValue !== undefined && data.faceValue !== null) {
           setFaceValue(String(data.faceValue));
         }
@@ -258,7 +286,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
       }
       if (typeof data.isYenBased === "boolean") setIsYenBased(data.isYenBased);
       if (data.balance !== undefined && data.balance !== "") setBalance(String(data.balance));
-      if (data.balanceUnit) setBalanceUnit(data.balanceUnit);
+      if (data.balanceUnit) setBalanceUnitFromValue(data.balanceUnit);
       if (data.expiryDate) setExpiryDate(data.expiryDate);
       setBalanceLowConfidence(Boolean(data.balanceLowConfidence));
       setExpiryLowConfidence(Boolean(data.expiryLowConfidence));
@@ -308,6 +336,17 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
     }
   }
 
+  // KNOWN_BALANCE_UNITS にある値ならそのまま選択、なければ「その他」+自由入力欄にセットする
+  function setBalanceUnitFromValue(unit: string) {
+    if (KNOWN_BALANCE_UNITS.includes(unit)) {
+      setBalanceUnitOption(unit);
+      setCustomBalanceUnit("");
+    } else {
+      setBalanceUnitOption("その他");
+      setCustomBalanceUnit(unit);
+    }
+  }
+
   function handleCategoryChange(newCategory: AccountCategory) {
     setCategory(newCategory);
     const defaults = CATEGORY_DEFAULTS[newCategory];
@@ -315,7 +354,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
     setAccountType(defaults.type);
     setFirstStageDays(defaults.notificationDaysBefore[0]);
     setSecondStageDays(defaults.notificationDaysBefore[1]);
-    setBalanceUnit(defaults.isYenBased ? "円" : "");
+    setBalanceUnitFromValue(defaults.isYenBased ? "円" : "");
   }
 
   // 登録・置き換え・追加のいずれでも使う入力チェック。エラーがあれば errorMessage をセットして false を返す
@@ -355,6 +394,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
         : {
             currentBalance: balance === "" ? null : Number(balance),
             balanceUnit,
+            yenExchangeRate: yenExchangeRate === "" ? null : Number(yenExchangeRate),
             faceValue: faceValue === "" ? null : Number(faceValue),
             itemQuantity: itemQuantity === "" ? null : Number(itemQuantity),
           }),
@@ -465,6 +505,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
 
       await updateDoc(doc(db, "accounts", duplicateAccount.id), {
         currentBalance: newBalance,
+        yenExchangeRate: yenExchangeRate === "" ? null : Number(yenExchangeRate),
         faceValue: newFaceValue,
         itemQuantity: newItemQuantity,
         lastUpdatedAt: now,
@@ -506,6 +547,12 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
 
     setIsRecordingOutcome(true);
     try {
+      const yenValue = getYenValue({
+        isYenBased,
+        currentBalance: balance === "" ? undefined : Number(balance),
+        yenExchangeRate: yenExchangeRate === "" ? null : Number(yenExchangeRate),
+      });
+
       await addDoc(collection(db, "outcome_events"), {
         ownerId: uid,
         accountId,
@@ -513,7 +560,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
         category,
         eventType,
         eventDate: serverTimestamp(),
-        ...(isYenBased && balance !== "" ? { amount: Number(balance) } : {}),
+        ...(yenValue !== null ? { amount: yenValue } : {}),
         isYenBased,
         createdAt: serverTimestamp(),
       });
@@ -704,16 +751,16 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
         {(category === "points" || isOther) && (
           <div style={{ marginBottom: 20 }}>
             <label style={{ display: "block", fontSize: 13, fontWeight: 500, marginBottom: 6, color: "#555" }}>
-              円建て/非円建て
+              表示単位
             </label>
             <div style={{ display: "flex", gap: 16, fontSize: 14 }}>
               <label style={{ display: "flex", alignItems: "center", gap: 4 }}>
                 <input type="radio" checked={isYenBased} onChange={() => setIsYenBased(true)} />
-                円建て(1pt=1円など)
+                円
               </label>
               <label style={{ display: "flex", alignItems: "center", gap: 4 }}>
                 <input type="radio" checked={!isYenBased} onChange={() => setIsYenBased(false)} />
-                非円建て(マイル等、変動あり)
+                ポイント・マイル等
               </label>
             </div>
           </div>
@@ -761,15 +808,64 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
                 </p>
               )}
             </div>
-            <div className="field" style={{ width: 96 }}>
+            <div className="field" style={{ width: 130 }}>
               <label>単位</label>
-              <input
-                type="text"
-                value={balanceUnit}
-                onChange={(e) => setBalanceUnit(e.target.value)}
-                placeholder="円/pt/マイル"
-              />
+              <select
+                value={balanceUnitOption}
+                onChange={(e) => setBalanceUnitOption(e.target.value)}
+              >
+                <option value="円">円</option>
+                <option value="pt">ポイント(pt)</option>
+                <option value="マイル">マイル</option>
+                <option value="枚">枚</option>
+                <option value="その他">その他(自由入力)</option>
+              </select>
+              {balanceUnitOption === "その他" && (
+                <input
+                  type="text"
+                  value={customBalanceUnit}
+                  onChange={(e) => setCustomBalanceUnit(e.target.value)}
+                  placeholder="単位を入力"
+                  style={{ marginTop: 6 }}
+                />
+              )}
             </div>
+          </div>
+        )}
+
+        {!isStampCard && !isGiftCertificate && (
+          <div
+            className="field"
+            style={{ marginLeft: 16, paddingLeft: 12, borderLeft: "2px solid #eee" }}
+          >
+            <label>円換算レート(任意)</label>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14 }}>
+              <input
+                type="number"
+                min="0"
+                value={exchangeUnitCount}
+                onChange={(e) => {
+                  setExchangeRateTouched(true);
+                  setExchangeUnitCount(e.target.value);
+                }}
+                style={{ width: 88 }}
+              />
+              {balanceUnit || "ポイント"} =
+              <input
+                type="number"
+                min="0"
+                value={exchangeUnitYen}
+                onChange={(e) => {
+                  setExchangeRateTouched(true);
+                  setExchangeUnitYen(e.target.value);
+                }}
+                style={{ width: 88 }}
+              />
+              円
+            </div>
+            <p style={{ fontSize: 13, color: "#999", marginTop: 6 }}>
+              例:200ポイント=1000円の場合、200と1000を入力してください。設定すると、円換算した金額の目安が一覧に表示されます
+            </p>
           </div>
         )}
 
