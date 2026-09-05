@@ -132,7 +132,7 @@ export default function ScanUpload() {
               expiryLowConfidence: expiryDateLowConfidence,
             },
             {
-              name: `${serviceName}(期間・用途限定)`,
+              name: `${serviceName}(期間限定)`,
               balance: limitedPortion.balance,
               balanceLowConfidence: limitedPortion.balanceConfidence === "low",
               expiryDate: limitedPortion.expiryDate,
