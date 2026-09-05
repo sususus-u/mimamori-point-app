@@ -653,10 +653,9 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
             className="card"
             style={{
               display: "flex",
-              alignItems: "flex-start",
-              gap: 8,
-              fontSize: 15,
-              fontWeight: 700,
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 4,
               padding: "14px 16px",
               marginBottom: 20,
               background: "var(--brand)",
@@ -664,10 +663,23 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
               border: "none",
             }}
           >
-            <Camera size={20} style={{ flexShrink: 0, marginTop: 2, color: "#fff" }} />
-            <span>
-              スクショから{scanProgress.total}件を検出しました。{scanProgress.current}件目/
-              {scanProgress.total}件目の内容を確認して登録してください。
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                fontSize: 28,
+                fontWeight: 700,
+                textAlign: "center",
+              }}
+            >
+              <Camera size={20} style={{ flexShrink: 0, color: "#fff" }} />
+              <span>
+                {scanProgress.current} / {scanProgress.total} 件目
+              </span>
+            </div>
+            <span style={{ fontSize: 13, textAlign: "center" }}>
+              スクショから複数件を検出しました。内容を確認して登録してください。
             </span>
           </div>
         )}
