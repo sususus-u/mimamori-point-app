@@ -111,6 +111,7 @@ export default function ScanUpload() {
         expiryDate: string | null;
         expiryDateConfidence?: string;
       } | null = data.limitedPortion;
+      const investedPortion: number | null = data.investedPortion;
 
       if (!serviceName) {
         setErrorMessage("サービス名を読み取れませんでした。手入力で登録してください。");
@@ -121,7 +122,13 @@ export default function ScanUpload() {
       setStatusMessage("既存のサービスを確認しています...");
 
       // 内訳(期間・用途限定ポイント等)が見つかった場合は、通常分/限定分の2口座に分けて扱う
-      const targets = limitedPortion
+      const targets: {
+        name: string;
+        balance: number | null;
+        balanceLowConfidence: boolean;
+        expiryDate: string | null;
+        expiryLowConfidence: boolean;
+      }[] = limitedPortion
         ? [
             {
               name: `${serviceName}(通常)`,
@@ -148,6 +155,17 @@ export default function ScanUpload() {
               expiryLowConfidence: expiryDateLowConfidence,
             },
           ];
+
+      // 保有ポイント(運用中など)が見つかった場合は、3つ目の口座として追加する
+      if (investedPortion !== null && investedPortion !== undefined) {
+        targets.push({
+          name: `${serviceName}運用`,
+          balance: investedPortion,
+          balanceLowConfidence: false,
+          expiryDate: null,
+          expiryLowConfidence: false,
+        });
+      }
 
       const newMatchItems: MatchItem[] = [];
       const queueItems: PrefillItem[] = [];

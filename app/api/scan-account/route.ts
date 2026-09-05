@@ -43,6 +43,8 @@ export async function POST(req: NextRequest) {
 
 一部のポイントサービス(dポイント等)では、合計ポイントの内訳として「期間限定」「用途限定」のようなポイントが別枠で表示されることがあります(例:「合計171P」のうち「期間・用途限定68P」)。このような内訳が見つかった場合のみ limitedPortion を含めてください。見つからない場合は limitedPortion は null にしてください。
 
+一部のポイントサービスでは、『保有ポイント』(利用可能ポイントとは別に、ポイント運用などに回っている分を含む合計)が別途表示されることがあります。この場合、totalBalance(利用可能ポイントの合計)とは別に、運用中のポイント(保有ポイント−利用可能ポイント)をinvestedPortionとして返してください。見つからない場合はinvestedPortionはnullにしてください。
+
 **重要:有効期限の割り当てルール**
 - 画面に表示されている有効期限が「期間・用途限定」等の内訳に対するものである場合、その期限は必ず limitedPortion.expiryDate に入れてください。トップレベルの expiryDate には入れないでください。
 - 通常ポイント/合計ポイント自体に、別途明示された有効期限がある場合のみ、トップレベルの expiryDate に入れてください。
@@ -68,7 +70,8 @@ export async function POST(req: NextRequest) {
     "balanceConfidence": "high または low",
     "expiryDate": "期間・用途限定ポイントの有効期限、YYYY-MM-DD形式(読み取れない場合はnull)",
     "expiryDateConfidence": "high または low"
-  } または null
+  } または null,
+  "investedPortion": 数値のみ(保有ポイント−利用可能ポイントの差額。見つからない場合はnull)
 }`,
             },
           ],
