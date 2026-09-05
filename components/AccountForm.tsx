@@ -154,6 +154,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
   const isStampCard = category === "stamp_card";
   const isOther = category === "other";
   const isGiftCertificate = category === "gift_certificate";
+  const isPoints = category === "points";
 
   // グループ名に応じた名前欄の候補(該当サービスがなければ全サービスの一覧にフォールバック)
   const nameCandidates = SERVICE_ACCOUNT_NAME_VARIANTS[groupName.trim()] ?? KNOWN_ACCOUNT_NAMES;
@@ -232,6 +233,12 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
         setBalanceUnitFromValue(data.balanceUnit ?? "円");
         if (data.yenExchangeRate !== undefined && data.yenExchangeRate !== null) {
           setYenExchangeRate(String(data.yenExchangeRate));
+        }
+        if (data.exchangeUnitCount !== undefined && data.exchangeUnitCount !== null) {
+          setExchangeUnitCount(String(data.exchangeUnitCount));
+        }
+        if (data.exchangeUnitYen !== undefined && data.exchangeUnitYen !== null) {
+          setExchangeUnitYen(String(data.exchangeUnitYen));
         }
         if (data.faceValue !== undefined && data.faceValue !== null) {
           setFaceValue(String(data.faceValue));
@@ -412,6 +419,8 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
             currentBalance: balance === "" ? null : Number(balance),
             balanceUnit,
             yenExchangeRate: yenExchangeRate === "" ? null : Number(yenExchangeRate),
+            exchangeUnitCount: exchangeUnitCount === "" ? null : Number(exchangeUnitCount),
+            exchangeUnitYen: exchangeUnitYen === "" ? null : Number(exchangeUnitYen),
             faceValue: faceValue === "" ? null : Number(faceValue),
             itemQuantity: itemQuantity === "" ? null : Number(itemQuantity),
           }),
@@ -523,6 +532,8 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
       await updateDoc(doc(db, "accounts", duplicateAccount.id), {
         currentBalance: newBalance,
         yenExchangeRate: yenExchangeRate === "" ? null : Number(yenExchangeRate),
+        exchangeUnitCount: exchangeUnitCount === "" ? null : Number(exchangeUnitCount),
+        exchangeUnitYen: exchangeUnitYen === "" ? null : Number(exchangeUnitYen),
         faceValue: newFaceValue,
         itemQuantity: newItemQuantity,
         lastUpdatedAt: now,
@@ -765,7 +776,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
           </div>
         )}
 
-        {(category === "points" || isOther) && (
+        {isOther && (
           <div style={{ marginBottom: 20 }}>
             <label style={{ display: "block", fontSize: 13, fontWeight: 500, marginBottom: 6, color: "#555" }}>
               表示単位
@@ -828,8 +839,9 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
             <div className="field" style={{ width: 130 }}>
               <label>単位</label>
               <select
-                value={balanceUnitOption}
+                value={isOther ? balanceUnitOption : CATEGORY_UNIT_DEFAULTS[category] ?? balanceUnitOption}
                 onChange={(e) => setBalanceUnitOption(e.target.value)}
+                disabled={!isOther}
               >
                 <option value="円">円</option>
                 <option value="pt">ポイント(pt)</option>
@@ -837,7 +849,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
                 <option value="枚">枚</option>
                 <option value="その他">その他(自由入力)</option>
               </select>
-              {balanceUnitOption === "その他" && (
+              {isOther && balanceUnitOption === "その他" && (
                 <input
                   type="text"
                   value={customBalanceUnit}
@@ -850,7 +862,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
           </div>
         )}
 
-        {!isStampCard && !isGiftCertificate && (
+        {isPoints && (
           <div
             className="field"
             style={{ marginLeft: 16, paddingLeft: 12, borderLeft: "2px solid #eee" }}
@@ -881,7 +893,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
               円
             </div>
             <p style={{ fontSize: 13, color: "#999", marginTop: 6 }}>
-              例:200ポイント=1000円の場合、200と1000を入力してください。設定すると、円換算した金額の目安が一覧に表示されます
+              例:200ポイント=1000円の場合、200と1000を入力してください。設定すると、円換算した金額の目安が一覧に表示されます。未入力の場合は1pt=1円として表示されます
             </p>
           </div>
         )}

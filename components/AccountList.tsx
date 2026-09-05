@@ -39,7 +39,7 @@ function balanceDisplay(acc: AccountWithId) {
       acc.balanceUnit
     )}`;
   }
-  if (!acc.isYenBased && acc.yenExchangeRate != null) {
+  if (acc.category === "points") {
     const yenValue = getYenValue(acc);
     if (yenValue !== null) {
       return `${formatBalance(acc.currentBalance, acc.balanceUnit)}(${yenValue.toLocaleString()}円相当)`;

@@ -42,7 +42,7 @@ export const CATEGORY_DEFAULTS: Record<
     label: "電子マネー",
   },
   points: {
-    isYenBased: true, // ユーザーが個別に変更可能(推奨表示)
+    isYenBased: true, // 常に円建て扱い(ユーザーによる切り替えなし)
     type: "continuous",
     notificationDaysBefore: [90, 21],
     label: "ポイント",
@@ -126,6 +126,10 @@ export interface AccountDoc {
 
   /** 1単位(pt等)あたりの円換算レート。isYenBasedがtrueの場合のみ意味を持つ。未設定はレート1(1pt=1円)として扱う */
   yenExchangeRate?: number | null;
+  /** 円換算レート計算時の元の数値(単位側、例:200)。編集画面での再表示用 */
+  exchangeUnitCount?: number | null;
+  /** 円換算レート計算時の元の数値(円側、例:1000)。編集画面での再表示用 */
+  exchangeUnitYen?: number | null;
 
   /** 残高。スタンプカードは概念自体を持たないため undefined */
   currentBalance?: number;
