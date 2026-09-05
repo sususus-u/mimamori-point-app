@@ -936,7 +936,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
             </p>
           )}
           <p style={{ fontSize: 13, color: "#999", marginTop: 6 }}>
-            空欄の場合は「期限なし・貯蓄枠」として扱われます
+            空欄の場合は「期限なし」タブに表示されます
           </p>
         </div>
 
