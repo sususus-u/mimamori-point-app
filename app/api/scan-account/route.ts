@@ -43,7 +43,9 @@ export async function POST(req: NextRequest) {
 
 一部のポイントサービス(dポイント等)では、合計ポイントの内訳として「期間限定」「用途限定」のようなポイントが別枠で表示されることがあります(例:「合計171P」のうち「期間・用途限定68P」)。このような内訳が見つかった場合のみ limitedPortion を含めてください。見つからない場合は limitedPortion は null にしてください。
 
-一部のポイントサービスでは、『保有ポイント』(利用可能ポイントとは別に、ポイント運用などに回っている分を含む合計)が別途表示されることがあります。この場合、totalBalance(利用可能ポイントの合計)とは別に、運用中のポイント(保有ポイント−利用可能ポイント)をinvestedPortionとして返してください。見つからない場合はinvestedPortionはnullにしてください。
+一部のサービスでは『保有ポイント』(全体の合計、運用中の分も含む)と『利用可能ポイント』(今すぐ使える分)が別々に表示されることがあります。totalBalanceには、必ず『利用可能ポイント』の値を使ってください。『保有ポイント』の値をtotalBalanceに使ってはいけません(保有ポイントは運用中の分を含んでいるため、通常の残高と混同すると計算が誤ります)。
+
+『運用中ポイント』『ポイント運用』のような文言と、それに対応する数値が直接表示されている場合は、その数値をそのままinvestedPortionとして返してください(計算する必要はありません)。直接表示されておらず、『保有ポイント』と『利用可能ポイント』の両方が見える場合のみ、保有ポイント−利用可能ポイントを計算してinvestedPortionとしてください。どちらも見つからない場合はnullにしてください。
 
 **重要:有効期限の割り当てルール**
 - 画面に表示されている有効期限が「期間・用途限定」等の内訳に対するものである場合、その期限は必ず limitedPortion.expiryDate に入れてください。トップレベルの expiryDate には入れないでください。
@@ -60,7 +62,7 @@ export async function POST(req: NextRequest) {
 
 {
   "serviceName": "サービス名(例:PayPay残高、dポイント など。読み取れない場合はnull)",
-  "totalBalance": 数値のみ(合計残高。カンマなし。読み取れない場合はnull),
+  "totalBalance": 数値のみ(利用可能ポイントの値。カンマなし。読み取れない場合はnull),
   "totalBalanceConfidence": "high または low",
   "balanceUnit": "円 か pt か マイル か 枚 など(読み取れない場合はnull)",
   "expiryDate": "通常分/合計分に明示された有効期限のみ。YYYY-MM-DD形式(なければnull)",
@@ -71,7 +73,7 @@ export async function POST(req: NextRequest) {
     "expiryDate": "期間・用途限定ポイントの有効期限、YYYY-MM-DD形式(読み取れない場合はnull)",
     "expiryDateConfidence": "high または low"
   } または null,
-  "investedPortion": 数値のみ(保有ポイント−利用可能ポイントの差額。見つからない場合はnull)
+  "investedPortion": 数値のみ(運用中ポイントの直接表示があればその値、なければ保有ポイント−利用可能ポイントの差額。見つからない場合はnull)
 }`,
             },
           ],
