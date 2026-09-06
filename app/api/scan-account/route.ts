@@ -91,6 +91,7 @@ JSONを作成する前に、まず画面に表示されているすべての項�
     const afterMarker = rawText.split("---JSON---").pop() ?? rawText;
     const cleaned = afterMarker.replace(/```json|```/g, "").trim();
     const parsed = JSON.parse(cleaned);
+    console.log("[scan-account] parsed:", JSON.stringify(parsed));
 
     return NextResponse.json(parsed);
   } catch (error) {
