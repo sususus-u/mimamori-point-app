@@ -15,7 +15,6 @@ import { collection, query, where, onSnapshot, Timestamp } from "firebase/firest
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthProvider";
 import { CATEGORY_DEFAULTS, type AccountCategory, type AccountDoc } from "@/types/firestore";
-import NotificationSetup from "@/components/NotificationSetup";
 import { getYenValue } from "@/lib/accountUtils";
 
 interface AccountWithId extends AccountDoc {
@@ -168,10 +167,6 @@ export default function AccountList() {
 
   return (
     <div>
-      <div style={{ marginBottom: 16 }}>
-        <NotificationSetup />
-      </div>
-
       <div
         className="card"
         style={{
