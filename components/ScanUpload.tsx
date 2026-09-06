@@ -123,42 +123,44 @@ export default function ScanUpload() {
 
       setStatusMessage("既存のサービスを確認しています...");
 
-      // 内訳(期間・用途限定ポイント等)が見つかった場合は、通常分/限定分の2口座に分けて扱う
+      // 内訳(期間・用途限定ポイント等)が見つかった場合は、通常分/限定分の2口座に分けて扱う。
+      // 実際に値が読み取れなかった項目については、空の確認項目を出さないようtargetを作らない。
       const targets: {
         name: string;
         balance: number | null;
         balanceLowConfidence: boolean;
         expiryDate: string | null;
         expiryLowConfidence: boolean;
-      }[] = limitedPortion
-        ? [
-            {
-              name: `${accountName}(通常)`,
-              balance:
-                totalBalance !== null ? totalBalance - limitedPortion.balance : null,
-              balanceLowConfidence: totalBalanceLowConfidence,
-              expiryDate,
-              expiryLowConfidence: expiryDateLowConfidence,
-            },
-            {
-              name: `${accountName}(期間限定)`,
-              balance: limitedPortion.balance,
-              balanceLowConfidence: limitedPortion.balanceConfidence === "low",
-              expiryDate: limitedPortion.expiryDate,
-              expiryLowConfidence: limitedPortion.expiryDateConfidence === "low",
-            },
-          ]
-        : [
-            {
-              name: accountName,
-              balance: totalBalance,
-              balanceLowConfidence: totalBalanceLowConfidence,
-              expiryDate,
-              expiryLowConfidence: expiryDateLowConfidence,
-            },
-          ];
+      }[] = [];
 
-      // 保有ポイント(運用中など)が見つかった場合は、3つ目の口座として追加する
+      if (limitedPortion) {
+        if (totalBalance !== null) {
+          targets.push({
+            name: `${accountName}(通常)`,
+            balance: totalBalance - limitedPortion.balance,
+            balanceLowConfidence: totalBalanceLowConfidence,
+            expiryDate,
+            expiryLowConfidence: expiryDateLowConfidence,
+          });
+        }
+        targets.push({
+          name: `${accountName}(期間限定)`,
+          balance: limitedPortion.balance,
+          balanceLowConfidence: limitedPortion.balanceConfidence === "low",
+          expiryDate: limitedPortion.expiryDate,
+          expiryLowConfidence: limitedPortion.expiryDateConfidence === "low",
+        });
+      } else if (totalBalance !== null) {
+        targets.push({
+          name: accountName,
+          balance: totalBalance,
+          balanceLowConfidence: totalBalanceLowConfidence,
+          expiryDate,
+          expiryLowConfidence: expiryDateLowConfidence,
+        });
+      }
+
+      // 保有ポイント(運用中など)が見つかった場合は、targetとして追加する
       if (investedPortion !== null && investedPortion !== undefined) {
         targets.push({
           name: `${accountName}運用`,
@@ -167,6 +169,13 @@ export default function ScanUpload() {
           expiryDate: null,
           expiryLowConfidence: false,
         });
+      }
+
+      if (targets.length === 0) {
+        setIsProcessing(false);
+        setStatusMessage("");
+        setErrorMessage("読み取れる項目が見つかりませんでした。手入力で登録してください。");
+        return;
       }
 
       const newMatchItems: MatchItem[] = [];
