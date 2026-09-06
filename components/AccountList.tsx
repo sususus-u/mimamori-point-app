@@ -175,7 +175,7 @@ export default function AccountList() {
       <div className="card" style={{ marginBottom: 12 }}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", textAlign: "center" }}>
           <div>
-            <p style={{ fontSize: 11, color: "#999", margin: "0 0 4px" }}>期限あり</p>
+            <p style={{ fontSize: 11, color: "#999", margin: "0 0 4px" }}>期間限定</p>
             <p style={{ fontFamily: "var(--font-heading)", fontSize: 22, fontWeight: 700, margin: 0 }}>
               ¥{withExpirySummary.yenTotal.toLocaleString()}
             </p>

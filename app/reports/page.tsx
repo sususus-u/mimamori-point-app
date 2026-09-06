@@ -226,7 +226,7 @@ export default function ReportsPage() {
           {/* 継続型:残高の推移 */}
           <p style={{ fontSize: 13, color: "#999", margin: "20px 0 8px" }}>残高の推移(継続型)</p>
 
-          <p style={{ fontSize: 12, color: "#999", margin: "0 0 6px" }}>期限あり残高</p>
+          <p style={{ fontSize: 12, color: "#999", margin: "0 0 6px" }}>期間限定残高</p>
           <div className="card" style={{ padding: 0, overflow: "hidden", marginBottom: 12 }}>
             {withExpiryRows.length === 0 && (
               <p style={{ fontSize: 13, color: "#999", padding: 14 }}>対象のサービスがありません</p>
