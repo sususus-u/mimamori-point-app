@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
 
     const message = await anthropic.messages.create({
       model: "claude-haiku-4-5-20251001",
-      max_tokens: 500,
+      max_tokens: 1024,
       messages: [
         {
           role: "user",
@@ -39,6 +39,9 @@ export async function POST(req: NextRequest) {
             {
               type: "text",
               text: `このスクリーンショットは、電子マネー・ポイント・マイルなどのサービスの残高・期限画面です。
+
+JSONを作成する前に、まず画面に表示されているすべての項目名と数値を、見えている通りに1行ずつ書き出してください(例:『保有ポイント: 6,956』『利用可能ポイント: 231』のように)。書き出した後、その内容をもとに、以下のJSON形式で回答してください。
+
 以下の項目をJSON形式のみで返してください。前置きや説明文、コードブロックの記号は一切付けないでください。
 
 一部のポイントサービス(dポイント等)では、合計ポイントの内訳として「期間限定」「用途限定」のようなポイントが別枠で表示されることがあります(例:「合計171P」のうち「期間・用途限定68P」)。このような内訳が見つかった場合のみ limitedPortion を含めてください。見つからない場合は limitedPortion は null にしてください。
@@ -59,6 +62,8 @@ export async function POST(req: NextRequest) {
 - 桁区切り(カンマ)や小数点、円マークなどの位置が曖昧で、金額の桁数に自信が持てない
 - 年・月・日のどれか、または元号/西暦の解釈に自信が持てない
 値自体が null(読み取れなかった)の場合は、対応する confidence は "high" のままで構いません(該当項目なしのため)。
+
+書き出しが終わったら、必ず最後に区切り線 ---JSON--- を1行だけ出力し、その直後にJSON本体のみを続けてください。
 
 {
   "serviceName": "サービス名(例:PayPay残高、dポイント など。読み取れない場合はnull)",
@@ -83,7 +88,8 @@ export async function POST(req: NextRequest) {
 
     const textBlock = message.content.find((block) => block.type === "text");
     const rawText = textBlock && "text" in textBlock ? textBlock.text : "{}";
-    const cleaned = rawText.replace(/```json|```/g, "").trim();
+    const afterMarker = rawText.split("---JSON---").pop() ?? rawText;
+    const cleaned = afterMarker.replace(/```json|```/g, "").trim();
     const parsed = JSON.parse(cleaned);
     console.log("[scan-account] parsed:", JSON.stringify(parsed));
 
