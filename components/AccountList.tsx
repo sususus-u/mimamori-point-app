@@ -202,9 +202,6 @@ export default function AccountList() {
             </p>
           </div>
         </div>
-        <p style={{ fontSize: 11, color: "#999", margin: "8px 0 0", textAlign: "center" }}>
-          ※すべて円相当
-        </p>
       </div>
 
       <div
