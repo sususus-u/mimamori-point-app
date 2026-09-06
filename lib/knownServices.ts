@@ -75,9 +75,29 @@ export const SERVICE_NAME_ALIASES: Record<string, { groupName: string; accountNa
   "au PAY ポイント運用": { groupName: "au PAY", accountName: "au PAYポイント" },
 };
 
+// ブランドキーワードから groupName・accountName を推測するための対応表。
+// SERVICE_NAME_ALIASES の完全一致で拾いきれない表記ゆれ(スペースの有無など)を、
+// キーワードの部分一致で吸収するためのフォールバック。新しいブランドはここに追記していく。
+// 「運用」の付与自体はScanUpload.tsx側(投資運用分のtarget名組み立て)に任せるため、
+// accountNameには常にpointName(「運用」を含まない形)を返す。
+const BRAND_POINT_INFO: { keyword: string; groupName: string; pointName: string }[] = [
+  { keyword: "PayPay", groupName: "PayPay", pointName: "PayPayポイント" },
+  { keyword: "au PAY", groupName: "au PAY", pointName: "au PAYポイント" },
+  { keyword: "dポイント", groupName: "d(ドコモ)", pointName: "dポイント" },
+  { keyword: "楽天", groupName: "楽天", pointName: "楽天ポイント" },
+  { keyword: "Vポイント", groupName: "Vポイント", pointName: "Vポイント" },
+];
+
 export function normalizeServiceName(rawName: string): { groupName: string; accountName: string } {
   if (SERVICE_NAME_ALIASES[rawName]) {
     return SERVICE_NAME_ALIASES[rawName];
   }
+
+  for (const brand of BRAND_POINT_INFO) {
+    if (rawName.includes(brand.keyword)) {
+      return { groupName: brand.groupName, accountName: brand.pointName };
+    }
+  }
+
   return { groupName: rawName, accountName: rawName };
 }
