@@ -62,3 +62,15 @@ export function guessServiceInfo(serviceName: string, unit: string | null): Know
   if (unit === "pt" || unit === "ポイント") return { category: "points", isYenBased: true };
   return { category: "other", isYenBased: true };
 }
+
+// スクショ読み取り結果のサービス名(表記ゆれ)を、グループ名・口座名の正式表記に変換するための対応表。
+export const SERVICE_NAME_ALIASES: Record<string, { groupName: string; accountName: string }> = {
+  "楽天ポイントクラブ": { groupName: "楽天", accountName: "楽天ポイント" },
+};
+
+export function normalizeServiceName(rawName: string): { groupName: string; accountName: string } {
+  if (SERVICE_NAME_ALIASES[rawName]) {
+    return SERVICE_NAME_ALIASES[rawName];
+  }
+  return { groupName: rawName, accountName: rawName };
+}

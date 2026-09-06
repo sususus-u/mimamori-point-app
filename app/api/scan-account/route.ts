@@ -85,6 +85,7 @@ export async function POST(req: NextRequest) {
     const rawText = textBlock && "text" in textBlock ? textBlock.text : "{}";
     const cleaned = rawText.replace(/```json|```/g, "").trim();
     const parsed = JSON.parse(cleaned);
+    console.log("[scan-account] parsed:", JSON.stringify(parsed));
 
     return NextResponse.json(parsed);
   } catch (error) {

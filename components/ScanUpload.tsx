@@ -21,7 +21,7 @@ import {
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthProvider";
-import { guessServiceInfo } from "@/lib/knownServices";
+import { guessServiceInfo, normalizeServiceName } from "@/lib/knownServices";
 import type { AccountDoc } from "@/types/firestore";
 
 interface PrefillItem {
@@ -119,6 +119,8 @@ export default function ScanUpload() {
         return;
       }
 
+      const { groupName, accountName } = normalizeServiceName(serviceName);
+
       setStatusMessage("既存のサービスを確認しています...");
 
       // 内訳(期間・用途限定ポイント等)が見つかった場合は、通常分/限定分の2口座に分けて扱う
@@ -131,7 +133,7 @@ export default function ScanUpload() {
       }[] = limitedPortion
         ? [
             {
-              name: `${serviceName}(通常)`,
+              name: `${accountName}(通常)`,
               balance:
                 totalBalance !== null ? totalBalance - limitedPortion.balance : null,
               balanceLowConfidence: totalBalanceLowConfidence,
@@ -139,7 +141,7 @@ export default function ScanUpload() {
               expiryLowConfidence: expiryDateLowConfidence,
             },
             {
-              name: `${serviceName}(期間限定)`,
+              name: `${accountName}(期間限定)`,
               balance: limitedPortion.balance,
               balanceLowConfidence: limitedPortion.balanceConfidence === "low",
               expiryDate: limitedPortion.expiryDate,
@@ -148,7 +150,7 @@ export default function ScanUpload() {
           ]
         : [
             {
-              name: serviceName,
+              name: accountName,
               balance: totalBalance,
               balanceLowConfidence: totalBalanceLowConfidence,
               expiryDate,
@@ -159,7 +161,7 @@ export default function ScanUpload() {
       // 保有ポイント(運用中など)が見つかった場合は、3つ目の口座として追加する
       if (investedPortion !== null && investedPortion !== undefined) {
         targets.push({
-          name: `${serviceName}運用`,
+          name: `${accountName}運用`,
           balance: investedPortion,
           balanceLowConfidence: false,
           expiryDate: null,
@@ -194,10 +196,10 @@ export default function ScanUpload() {
             expiryLowConfidence: target.expiryDate !== null && target.expiryLowConfidence,
           });
         } else {
-          const guess = guessServiceInfo(serviceName, balanceUnit);
+          const guess = guessServiceInfo(accountName, balanceUnit);
           queueItems.push({
             name: target.name,
-            groupName: serviceName,
+            groupName,
             category: guess.category,
             isYenBased: guess.isYenBased,
             balance: target.balance ?? "",
