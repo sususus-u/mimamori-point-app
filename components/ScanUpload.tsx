@@ -120,6 +120,7 @@ export default function ScanUpload() {
       }
 
       const { groupName, accountName } = normalizeServiceName(serviceName);
+      console.log("[ScanUpload] normalizeServiceName:", { serviceName, groupName, accountName });
 
       setStatusMessage("既存のサービスを確認しています...");
 
