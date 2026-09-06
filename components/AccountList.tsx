@@ -175,26 +175,42 @@ export default function AccountList() {
       <div
         className="card"
         style={{
-          display: "flex",
-          gap: 12,
-          flexWrap: "wrap",
-          fontSize: 13,
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr 1fr",
+          textAlign: "center",
           marginBottom: 12,
-          color: "#666",
         }}
       >
-        <p style={{ margin: 0 }}>
-          期限あり:{withExpirySummary.count}件 合計{withExpirySummary.yenTotal.toLocaleString()}
-          <span>円<span style={{ fontSize: 11 }}>相当</span></span>
-        </p>
-        <p style={{ margin: 0 }}>
-          期限なし:{noExpirySummary.count}件 合計{noExpirySummary.yenTotal.toLocaleString()}
-          <span>円<span style={{ fontSize: 11 }}>相当</span></span>
-        </p>
-        <p style={{ margin: 0 }}>
-          運用残高:{investedSummary.count}件 合計{investedSummary.yenTotal.toLocaleString()}
-          <span>円<span style={{ fontSize: 11 }}>相当</span></span>
-        </p>
+        <div>
+          <p style={{ fontSize: 11, color: "#999", margin: "0 0 4px" }}>期限あり</p>
+          <p style={{ fontFamily: "var(--font-heading)", fontSize: 22, fontWeight: 700, margin: 0 }}>
+            {withExpirySummary.count}件
+          </p>
+          <p style={{ fontSize: 11, color: "#999", margin: "2px 0 0" }}>
+            {withExpirySummary.yenTotal.toLocaleString()}
+            <span>円<span style={{ fontSize: 11 }}>相当</span></span>
+          </p>
+        </div>
+        <div style={{ borderLeft: "1px solid #eee" }}>
+          <p style={{ fontSize: 11, color: "#999", margin: "0 0 4px" }}>期限なし</p>
+          <p style={{ fontFamily: "var(--font-heading)", fontSize: 22, fontWeight: 700, margin: 0 }}>
+            {noExpirySummary.count}件
+          </p>
+          <p style={{ fontSize: 11, color: "#999", margin: "2px 0 0" }}>
+            {noExpirySummary.yenTotal.toLocaleString()}
+            <span>円<span style={{ fontSize: 11 }}>相当</span></span>
+          </p>
+        </div>
+        <div style={{ borderLeft: "1px solid #eee" }}>
+          <p style={{ fontSize: 11, color: "#999", margin: "0 0 4px" }}>運用残高</p>
+          <p style={{ fontFamily: "var(--font-heading)", fontSize: 22, fontWeight: 700, margin: 0 }}>
+            {investedSummary.count}件
+          </p>
+          <p style={{ fontSize: 11, color: "#999", margin: "2px 0 0" }}>
+            {investedSummary.yenTotal.toLocaleString()}
+            <span>円<span style={{ fontSize: 11 }}>相当</span></span>
+          </p>
+        </div>
       </div>
 
       <div
