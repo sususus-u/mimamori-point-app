@@ -119,7 +119,7 @@ export default function ScanUpload() {
         return;
       }
 
-      const { groupName, accountName } = normalizeServiceName(serviceName);
+      const { groupName, accountName, investedAccountName } = normalizeServiceName(serviceName);
 
       setStatusMessage("既存のサービスを確認しています...");
 
@@ -163,7 +163,7 @@ export default function ScanUpload() {
       // 保有ポイント(運用中など)が見つかった場合は、targetとして追加する
       if (investedPortion !== null && investedPortion !== undefined) {
         targets.push({
-          name: `${accountName}運用`,
+          name: investedAccountName,
           balance: investedPortion,
           balanceLowConfidence: false,
           expiryDate: null,

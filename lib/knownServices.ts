@@ -22,9 +22,9 @@ export const KNOWN_SERVICES: Record<string, KnownServiceInfo> = {
   dポイント: { category: "points", isYenBased: true },
   "dポイント(期間限定)": { category: "points", isYenBased: true },
   Pontaポイント: { category: "points", isYenBased: true },
-  "Pontaポイント(期間限定)": { category: "points", isYenBased: true },
+  "Pontaポイント(期間・利用先限定)": { category: "points", isYenBased: true },
   Vポイント: { category: "points", isYenBased: true },
-  "Vポイント(期間限定)": { category: "points", isYenBased: true },
+  "Vポイント(期間・利用先限定)": { category: "points", isYenBased: true },
   "VポイントPay残高": { category: "electronic_money", isYenBased: true },
   WAON: { category: "electronic_money", isYenBased: true },
   "WAON残高": { category: "electronic_money", isYenBased: true },
@@ -70,9 +70,6 @@ export const SERVICE_NAME_ALIASES: Record<string, { groupName: string; accountNa
   "PayPayポイント（ポイント運用）": { groupName: "PayPay", accountName: "PayPayポイント" },
   "dポイント(ポイント運用)": { groupName: "d(ドコモ)", accountName: "dポイント" },
   "dポイント運用": { groupName: "d(ドコモ)", accountName: "dポイント" },
-  "au PAYポイント(ポイント運用)": { groupName: "au PAY", accountName: "au PAYポイント" },
-  "au PAYポイント運用": { groupName: "au PAY", accountName: "au PAYポイント" },
-  "au PAY ポイント運用": { groupName: "au PAY", accountName: "au PAYポイント" },
 };
 
 // ブランドキーワードから groupName・accountName を推測するための対応表。
@@ -80,24 +77,39 @@ export const SERVICE_NAME_ALIASES: Record<string, { groupName: string; accountNa
 // キーワードの部分一致で吸収するためのフォールバック。新しいブランドはここに追記していく。
 // 「運用」の付与自体はScanUpload.tsx側(投資運用分のtarget名組み立て)に任せるため、
 // accountNameには常にpointName(「運用」を含まない形)を返す。
-const BRAND_POINT_INFO: { keyword: string; groupName: string; pointName: string }[] = [
+// investedNameを指定すると、投資運用分の口座名に `${pointName}運用` の代わりにそちらを使う
+// (例: au PAYの画面はサービス名に「au PAY」を含むため、グループ統合後もPontaではなく
+// 「au PAYポイント運用」の名前で登録したい、といったケース向け)。
+const BRAND_POINT_INFO: {
+  keyword: string;
+  groupName: string;
+  pointName: string;
+  investedName?: string;
+}[] = [
   { keyword: "PayPay", groupName: "PayPay", pointName: "PayPayポイント" },
-  { keyword: "au PAY", groupName: "au PAY", pointName: "au PAYポイント" },
+  { keyword: "au PAY", groupName: "au PAY｜Ponta", pointName: "Pontaポイント", investedName: "au PAYポイント運用" },
   { keyword: "dポイント", groupName: "d(ドコモ)", pointName: "dポイント" },
   { keyword: "楽天", groupName: "楽天", pointName: "楽天ポイント" },
   { keyword: "Vポイント", groupName: "Vポイント", pointName: "Vポイント" },
 ];
 
-export function normalizeServiceName(rawName: string): { groupName: string; accountName: string } {
+export function normalizeServiceName(
+  rawName: string
+): { groupName: string; accountName: string; investedAccountName: string } {
   if (SERVICE_NAME_ALIASES[rawName]) {
-    return SERVICE_NAME_ALIASES[rawName];
+    const alias = SERVICE_NAME_ALIASES[rawName];
+    return { ...alias, investedAccountName: `${alias.accountName}運用` };
   }
 
   for (const brand of BRAND_POINT_INFO) {
     if (rawName.includes(brand.keyword)) {
-      return { groupName: brand.groupName, accountName: brand.pointName };
+      return {
+        groupName: brand.groupName,
+        accountName: brand.pointName,
+        investedAccountName: brand.investedName ?? `${brand.pointName}運用`,
+      };
     }
   }
 
-  return { groupName: rawName, accountName: rawName };
+  return { groupName: rawName, accountName: rawName, investedAccountName: `${rawName}運用` };
 }

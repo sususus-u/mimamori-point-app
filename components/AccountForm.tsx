@@ -49,13 +49,12 @@ const CATEGORY_OPTIONS: { value: AccountCategory; label: string }[] = [
 const KNOWN_SERVICE_NAMES = [
   "PayPay",
   "d(ドコモ)",
-  "au PAY",
+  "au PAY｜Ponta",
   "楽天",
   "WAON",
   "nanaco",
   "Suica",
   "PASMO",
-  "Pontaポイント",
   "Vポイント",
   "ANAマイレージクラブ",
   "JALマイレージバンク",
@@ -68,7 +67,7 @@ const KNOWN_SERVICE_NAMES = [
 const SERVICE_ACCOUNT_NAME_VARIANTS: Record<string, string[]> = {
   "PayPay": ["PayPay残高", "PayPayポイント", "PayPayポイント(期間限定)"],
   "d(ドコモ)": ["d払い残高", "dポイント", "dポイント(期間限定)"],
-  "au PAY": ["au PAY残高"],
+  "au PAY｜Ponta": ["au PAY残高", "Pontaポイント", "Pontaポイント(期間・利用先限定)", "au PAYポイント運用"],
   "楽天": ["楽天ペイ残高", "楽天ポイント", "楽天ポイント(期間限定)"],
   "WAON": ["WAON残高", "WAON POINT"],
   "nanaco": ["nanaco残高", "nanacoポイント"],
@@ -78,8 +77,7 @@ const SERVICE_ACCOUNT_NAME_VARIANTS: Record<string, string[]> = {
   "切手": ["切手"],
   "ANAマイレージクラブ": ["ANAマイル", "ANA Pay残高"],
   "JALマイレージバンク": ["JALマイル", "JAL Pay残高"],
-  "Pontaポイント": ["Pontaポイント", "Pontaポイント(期間限定)"],
-  "Vポイント": ["Vポイント", "Vポイント(期間限定)", "VポイントPay残高"],
+  "Vポイント": ["Vポイント", "Vポイント(期間・利用先限定)", "VポイントPay残高"],
 };
 
 // グループ名が候補にない場合、名前欄の候補として出す全サービスの口座名一覧
