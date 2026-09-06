@@ -2,7 +2,7 @@
 
 // 口座一覧。AppShellの中に表示される想定(独自のヘッダーは持たない)。
 // 「期間限定」タブ(キーはwithExpiryのまま)は、期限日が入っているものに加えて
-// 名前に「期間限定」を含むもの(期限日未入力でも対象)を集める。期限月ごとにグルーピングし、
+// 名前に「期間」を含むもの(「期間限定」「期間・利用先限定」等、期限日未入力でも対象)を集める。期限月ごとにグルーピングし、
 // 期限未入力のものは「期限未設定」セクションにまとめて最上部に表示、直近3ヶ月は展開・それ以降は折りたたむ。
 // 「期限なし」タブはどちらにも当てはまらないものを別扱い。「サービス別」タブはグループ名でまとめる。
 // 登録・スクショの導線は /accounts/new 側の大きなCTAに集約したため、ここでは持たない。
@@ -111,7 +111,7 @@ export default function AccountList() {
     return () => unsubscribe();
   }, [uid]);
 
-  const isLimitedOrHasExpiry = (a: AccountWithId) => Boolean(a.expiryDate) || a.name.includes("期間限定");
+  const isLimitedOrHasExpiry = (a: AccountWithId) => Boolean(a.expiryDate) || a.name.includes("期間");
 
   const withExpiry = accounts.filter(isLimitedOrHasExpiry);
   const noExpiry = sortAccounts(
