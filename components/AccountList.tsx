@@ -184,31 +184,31 @@ export default function AccountList() {
         <div>
           <p style={{ fontSize: 11, color: "#999", margin: "0 0 4px" }}>期限あり</p>
           <p style={{ fontFamily: "var(--font-heading)", fontSize: 22, fontWeight: 700, margin: 0 }}>
-            {withExpirySummary.count}件
-          </p>
-          <p style={{ fontSize: 11, color: "#999", margin: "2px 0 0" }}>
             {withExpirySummary.yenTotal.toLocaleString()}
             <span>円<span style={{ fontSize: 11 }}>相当</span></span>
+          </p>
+          <p style={{ fontSize: 11, color: "#999", margin: "2px 0 0" }}>
+            {withExpirySummary.count}件
           </p>
         </div>
         <div style={{ borderLeft: "1px solid #eee" }}>
           <p style={{ fontSize: 11, color: "#999", margin: "0 0 4px" }}>期限なし</p>
           <p style={{ fontFamily: "var(--font-heading)", fontSize: 22, fontWeight: 700, margin: 0 }}>
-            {noExpirySummary.count}件
-          </p>
-          <p style={{ fontSize: 11, color: "#999", margin: "2px 0 0" }}>
             {noExpirySummary.yenTotal.toLocaleString()}
             <span>円<span style={{ fontSize: 11 }}>相当</span></span>
+          </p>
+          <p style={{ fontSize: 11, color: "#999", margin: "2px 0 0" }}>
+            {noExpirySummary.count}件
           </p>
         </div>
         <div style={{ borderLeft: "1px solid #eee" }}>
           <p style={{ fontSize: 11, color: "#999", margin: "0 0 4px" }}>運用残高</p>
           <p style={{ fontFamily: "var(--font-heading)", fontSize: 22, fontWeight: 700, margin: 0 }}>
-            {investedSummary.count}件
-          </p>
-          <p style={{ fontSize: 11, color: "#999", margin: "2px 0 0" }}>
             {investedSummary.yenTotal.toLocaleString()}
             <span>円<span style={{ fontSize: 11 }}>相当</span></span>
+          </p>
+          <p style={{ fontSize: 11, color: "#999", margin: "2px 0 0" }}>
+            {investedSummary.count}件
           </p>
         </div>
       </div>
