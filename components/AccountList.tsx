@@ -23,7 +23,7 @@ interface AccountWithId extends AccountDoc {
 
 function formatBalance(balance?: number | null, unit?: string | null) {
   if (balance === undefined || balance === null) return "";
-  return unit === "円" ? `¥${balance.toLocaleString()}` : `${balance.toLocaleString()}${unit ?? ""}`;
+  return unit === "円" ? `${balance.toLocaleString()}円` : `${balance.toLocaleString()}${unit ?? ""}`;
 }
 
 function balanceDisplay(acc: AccountWithId) {
@@ -33,7 +33,7 @@ function balanceDisplay(acc: AccountWithId) {
     acc.itemQuantity !== undefined &&
     acc.itemQuantity !== null
   ) {
-    return `¥${acc.faceValue.toLocaleString()} × ${acc.itemQuantity}枚 = ${formatBalance(
+    return `${acc.faceValue.toLocaleString()}円 × ${acc.itemQuantity}枚 = ${formatBalance(
       acc.currentBalance,
       acc.balanceUnit
     )}`;
@@ -41,7 +41,12 @@ function balanceDisplay(acc: AccountWithId) {
   if (acc.category === "points") {
     const yenValue = getYenValue(acc);
     if (yenValue !== null) {
-      return `${formatBalance(acc.currentBalance, acc.balanceUnit)}(${yenValue.toLocaleString()}円相当)`;
+      return (
+        <>
+          {formatBalance(acc.currentBalance, acc.balanceUnit)}({yenValue.toLocaleString()}
+          <span>円<span style={{ fontSize: 11 }}>相当</span></span>)
+        </>
+      );
     }
   }
   return formatBalance(acc.currentBalance, acc.balanceUnit);
@@ -179,13 +184,16 @@ export default function AccountList() {
         }}
       >
         <p style={{ margin: 0 }}>
-          期限あり:{withExpirySummary.count}件 合計¥{withExpirySummary.yenTotal.toLocaleString()}
+          期限あり:{withExpirySummary.count}件 合計{withExpirySummary.yenTotal.toLocaleString()}
+          <span>円<span style={{ fontSize: 11 }}>相当</span></span>
         </p>
         <p style={{ margin: 0 }}>
-          期限なし:{noExpirySummary.count}件 合計¥{noExpirySummary.yenTotal.toLocaleString()}
+          期限なし:{noExpirySummary.count}件 合計{noExpirySummary.yenTotal.toLocaleString()}
+          <span>円<span style={{ fontSize: 11 }}>相当</span></span>
         </p>
         <p style={{ margin: 0 }}>
-          運用残高:{investedSummary.count}件 合計¥{investedSummary.yenTotal.toLocaleString()}
+          運用残高:{investedSummary.count}件 合計{investedSummary.yenTotal.toLocaleString()}
+          <span>円<span style={{ fontSize: 11 }}>相当</span></span>
         </p>
       </div>
 
