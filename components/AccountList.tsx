@@ -41,6 +41,15 @@ function balanceDisplay(acc: AccountWithId) {
   if (acc.category === "points") {
     const yenValue = getYenValue(acc);
     if (yenValue !== null) {
+      const isEquivalentRate = acc.yenExchangeRate == null || acc.yenExchangeRate === 1;
+      if (isEquivalentRate) {
+        return (
+          <>
+            {yenValue.toLocaleString()}
+            <span>円<span style={{ fontSize: 11 }}>相当</span></span>
+          </>
+        );
+      }
       return (
         <>
           {formatBalance(acc.currentBalance, acc.balanceUnit)}({yenValue.toLocaleString()}
