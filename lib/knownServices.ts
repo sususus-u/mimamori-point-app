@@ -66,6 +66,7 @@ export function guessServiceInfo(serviceName: string, unit: string | null): Know
 // スクショ読み取り結果のサービス名(表記ゆれ)を、グループ名・口座名の正式表記に変換するための対応表。
 export const SERVICE_NAME_ALIASES: Record<string, { groupName: string; accountName: string }> = {
   "楽天ポイントクラブ": { groupName: "楽天", accountName: "楽天ポイント" },
+  "Vポイント運用": { groupName: "Vポイント", accountName: "Vポイント運用" },
 };
 
 export function normalizeServiceName(rawName: string): { groupName: string; accountName: string } {
