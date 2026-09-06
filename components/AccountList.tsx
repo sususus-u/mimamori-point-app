@@ -106,13 +106,21 @@ export default function AccountList() {
     sortMode
   );
 
+  const isInvested = (a: AccountWithId) => a.name.endsWith("運用");
+  const investedAccounts = noExpiry.filter(isInvested);
+  const noExpiryExcludingInvested = noExpiry.filter((a) => !isInvested(a));
+
   const withExpirySummary = {
     count: withExpiry.length,
     yenTotal: withExpiry.reduce((sum, a) => sum + (getYenValue(a) ?? 0), 0),
   };
   const noExpirySummary = {
-    count: noExpiry.length,
-    yenTotal: noExpiry.reduce((sum, a) => sum + (getYenValue(a) ?? 0), 0),
+    count: noExpiryExcludingInvested.length,
+    yenTotal: noExpiryExcludingInvested.reduce((sum, a) => sum + (getYenValue(a) ?? 0), 0),
+  };
+  const investedSummary = {
+    count: investedAccounts.length,
+    yenTotal: investedAccounts.reduce((sum, a) => sum + (getYenValue(a) ?? 0), 0),
   };
 
   const withExpiryDated = withExpiry.filter((a) => a.expiryDate);
@@ -180,6 +188,9 @@ export default function AccountList() {
         </p>
         <p style={{ margin: 0 }}>
           期限なし:{noExpirySummary.count}件 合計¥{noExpirySummary.yenTotal.toLocaleString()}
+        </p>
+        <p style={{ margin: 0 }}>
+          運用残高:{investedSummary.count}件 合計¥{investedSummary.yenTotal.toLocaleString()}
         </p>
       </div>
 
