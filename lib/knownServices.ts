@@ -72,6 +72,7 @@ export const SERVICE_NAME_ALIASES: Record<string, { groupName: string; accountNa
   "dポイント運用": { groupName: "d(ドコモ)", accountName: "dポイント" },
   "au PAYポイント(ポイント運用)": { groupName: "au PAY", accountName: "au PAYポイント" },
   "au PAYポイント運用": { groupName: "au PAY", accountName: "au PAYポイント" },
+  "au PAY ポイント運用": { groupName: "au PAY", accountName: "au PAYポイント" },
 };
 
 export function normalizeServiceName(rawName: string): { groupName: string; accountName: string } {
