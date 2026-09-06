@@ -4,14 +4,12 @@
 // 上部ヘッダー(固定) + 中央スクロール領域 + 下部タブバー(固定)の3段構成。
 // 最大幅480pxで、PCで見ても「1枚のカード」として中央に固定表示される。
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Wallet, Plus, Menu, LayoutGrid, Bell } from "lucide-react";
-import { useAuth } from "@/contexts/AuthProvider";
-import { enableNotifications, listenForForegroundMessages } from "@/lib/messaging";
 
 const HUB_URL = "https://okizukibiyori.com/";
+const HUB_NOTIFICATION_SETTINGS_URL = "https://okizukibiyori.com/settings";
 
 const SCREEN_TITLES: Record<string, string> = {
   "/": "サービス一覧",
@@ -30,29 +28,6 @@ function getTitle(pathname: string): string {
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { uid } = useAuth();
-  const [notificationStatus, setNotificationStatus] = useState<
-    "idle" | "loading" | "enabled" | "error"
-  >("idle");
-
-  useEffect(() => {
-    if (typeof window !== "undefined" && Notification.permission === "granted") {
-      setNotificationStatus("enabled");
-      listenForForegroundMessages();
-    }
-  }, []);
-
-  async function handleEnableNotifications() {
-    if (!uid) return;
-    setNotificationStatus("loading");
-    const result = await enableNotifications(uid);
-    if (result.success) {
-      setNotificationStatus("enabled");
-      listenForForegroundMessages();
-    } else {
-      setNotificationStatus("error");
-    }
-  }
 
   const tabs = [
     { href: "/", label: "一覧", icon: Wallet, active: pathname === "/" },
@@ -78,21 +53,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <h1 className="appbar-title">{getTitle(pathname)}</h1>
         </div>
         <div style={{ display: "flex", alignItems: "center" }}>
-          <button
-            onClick={handleEnableNotifications}
-            disabled={notificationStatus === "loading" || notificationStatus === "enabled"}
+          <a
+            href={HUB_NOTIFICATION_SETTINGS_URL}
             className="appbar-home"
-            style={{
-              background: "none",
-              border: "none",
-              padding: 0,
-              cursor: notificationStatus === "enabled" ? "default" : "pointer",
-              color: notificationStatus === "enabled" ? "var(--brand)" : "#999",
-            }}
-            aria-label="通知を有効にする"
+            aria-label="通知設定(ハブ)"
           >
             <Bell size={20} />
-          </button>
+          </a>
           <a href={HUB_URL} className="appbar-home" aria-label="きづきびより ハブに戻る">
             <LayoutGrid size={20} />
           </a>
