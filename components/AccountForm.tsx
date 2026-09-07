@@ -406,7 +406,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
       return false;
     }
     if (!isEditMode && hasExpiry === null) {
-      setErrorMessage("期限あり/期限なしを選択してください。");
+      setErrorMessage("有効期限/期限なしを選択してください。");
       return false;
     }
     return true;
