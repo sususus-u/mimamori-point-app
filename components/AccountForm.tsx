@@ -120,6 +120,8 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
   const [faceValue, setFaceValue] = useState("");
   const [itemQuantity, setItemQuantity] = useState("");
   const [expiryDate, setExpiryDate] = useState("");
+  // 有効期限を「期間限定」「期限なし」のどちらにするか。null は未選択(新規登録時は選択必須)
+  const [hasExpiry, setHasExpiry] = useState<boolean | null>(null);
   const [storageLocationMemo, setStorageLocationMemo] = useState("");
   const [firstStageDays, setFirstStageDays] = useState(
     CATEGORY_DEFAULTS.electronic_money.notificationDaysBefore[0]
@@ -250,6 +252,10 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
           const mm = String(d.getMonth() + 1).padStart(2, "0");
           const dd = String(d.getDate()).padStart(2, "0");
           setExpiryDate(`${yyyy}-${mm}-${dd}`);
+          setHasExpiry(true);
+        } else {
+          // 期限日は未入力でも、名前に「期間」を含む場合は「期限ありだが未入力」の状態として復元する
+          setHasExpiry((data.name ?? "").includes("期間"));
         }
         setStorageLocationMemo(data.storageLocationMemo ?? "");
         setFirstStageDays(data.notificationTiming?.firstStageDays ?? 90);
@@ -307,6 +313,8 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
       if (data.balance !== undefined && data.balance !== "") setBalance(String(data.balance));
       if (data.balanceUnit) setBalanceUnitFromValue(data.balanceUnit);
       if (data.expiryDate) setExpiryDate(data.expiryDate);
+      // AIの読み取り結果(expiryDateの有無)に応じて自動選択する。後から手動での変更は可能
+      setHasExpiry(Boolean(data.expiryDate));
       setBalanceLowConfidence(Boolean(data.balanceLowConfidence));
       setExpiryLowConfidence(Boolean(data.expiryLowConfidence));
     } catch (error) {
@@ -395,6 +403,10 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
     }
     if (isGiftCertificate && (faceValue === "" || itemQuantity === "")) {
       setErrorMessage("額面と枚数を入力してください。");
+      return false;
+    }
+    if (!isEditMode && hasExpiry === null) {
+      setErrorMessage("期限あり/期限なしを選択してください。");
       return false;
     }
     return true;
@@ -980,25 +992,48 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
         )}
 
         <div className="field">
-          <label>有効期限(任意)</label>
-          <input
-            type="date"
-            value={expiryDate}
-            onChange={(e) => setExpiryDate(e.target.value)}
-            style={expiryLowConfidence ? { borderColor: "#b56a1e", background: "#fdf3e7" } : undefined}
-          />
-          {expiryLowConfidence && (
-            <p style={{ fontSize: 12, color: "#b56a1e", marginTop: 4 }}>
-              読み取りに自信が持てませんでした。確認してください
-            </p>
-          )}
-          <p style={{ fontSize: 13, color: "#999", marginTop: 6 }}>
-            空欄の場合は「期限なし」タブに表示されます
-          </p>
-          <p style={{ fontSize: 13, color: "#999", marginTop: 6 }}>
-            名前に「期間限定」が含まれる場合は、期限が分からなくても「期間限定」タブに表示されます。期限が分かり次第、入力してください。
-          </p>
+          <label>有効期限の設定</label>
+          <div style={{ display: "flex", gap: 16 }}>
+            <label style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              <input type="radio" checked={hasExpiry === true} onChange={() => setHasExpiry(true)} />
+              期間限定
+            </label>
+            <label style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              <input
+                type="radio"
+                checked={hasExpiry === false}
+                onChange={() => {
+                  setHasExpiry(false);
+                  setExpiryDate("");
+                }}
+              />
+              期限なし
+            </label>
+          </div>
         </div>
+
+        {hasExpiry !== false && (
+          <div className="field">
+            <label>有効期限(任意)</label>
+            <input
+              type="date"
+              value={expiryDate}
+              onChange={(e) => setExpiryDate(e.target.value)}
+              style={expiryLowConfidence ? { borderColor: "#b56a1e", background: "#fdf3e7" } : undefined}
+            />
+            {expiryLowConfidence && (
+              <p style={{ fontSize: 12, color: "#b56a1e", marginTop: 4 }}>
+                読み取りに自信が持てませんでした。確認してください
+              </p>
+            )}
+            <p style={{ fontSize: 13, color: "#999", marginTop: 6 }}>
+              空欄の場合は「期限なし」タブに表示されます
+            </p>
+            <p style={{ fontSize: 13, color: "#999", marginTop: 6 }}>
+              名前に「期間限定」が含まれる場合は、期限が分からなくても「期間限定」タブに表示されます。期限が分かり次第、入力してください。
+            </p>
+          </div>
+        )}
 
         <div className="field">
           <label>保管場所メモ(任意)</label>
