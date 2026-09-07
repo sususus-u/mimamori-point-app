@@ -91,12 +91,22 @@ function sortAccounts(list: AccountWithId[], mode: "balance" | "name"): AccountW
 export default function AccountList() {
   const { uid, isLoading } = useAuth();
   const [accounts, setAccounts] = useState<AccountWithId[]>([]);
-  const [tab, setTab] = useState<"withExpiry" | "noExpiry" | "byGroup">("withExpiry");
+  const [tab, setTab] = useState<"withExpiry" | "noExpiry" | "byGroup">(() => {
+    if (typeof window === "undefined") return "withExpiry";
+    const stored = sessionStorage.getItem("account-list-tab");
+    if (stored === "withExpiry" || stored === "noExpiry" || stored === "byGroup") return stored;
+    return "withExpiry";
+  });
   const [expandedMonths, setExpandedMonths] = useState<Set<string>>(new Set());
   const [sortMode, setSortMode] = useState<"balance" | "name">("balance");
   const [withExpirySortMode, setWithExpirySortMode] = useState<"expiry" | "balance" | "name">(
     "expiry"
   );
+
+  // タブの選択状態を、画面遷移をまたいで(編集画面から戻ってきた時など)保持する
+  useEffect(() => {
+    sessionStorage.setItem("account-list-tab", tab);
+  }, [tab]);
 
   useEffect(() => {
     if (!uid) return;
