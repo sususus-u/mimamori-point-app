@@ -46,14 +46,14 @@ function balanceDisplay(acc: AccountWithId) {
         return (
           <>
             {yenValue.toLocaleString()}
-            <span>円<span style={{ fontSize: 11 }}>相当</span></span>
+            <span style={{ fontSize: 11 }}>円相当</span>
           </>
         );
       }
       return (
         <>
           {formatBalance(acc.currentBalance, acc.balanceUnit)}({yenValue.toLocaleString()}
-          <span>円<span style={{ fontSize: 11 }}>相当</span></span>)
+          <span style={{ fontSize: 11 }}>円相当</span>)
         </>
       );
     }
@@ -554,7 +554,11 @@ export default function AccountList() {
                     }}
                   >
                     <span>{key}</span>
-                    {total > 0 && <span>¥{total.toLocaleString()}</span>}
+                    {total > 0 && (
+                      <span style={{ fontFamily: "var(--font-heading)", fontSize: 22, fontWeight: 700 }}>
+                        ¥{total.toLocaleString()}
+                      </span>
+                    )}
                   </div>
                   {items.map((acc) => {
                     const expiry = acc.expiryDate ? (acc.expiryDate as Timestamp).toDate() : null;
