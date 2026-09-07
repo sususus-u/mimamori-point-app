@@ -444,6 +444,35 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
   }
 
   // 重複が見つからなかった場合、および「新たに登録する」を選んだ場合の処理
+  // スクショ由来のキューに次の項目が残っていれば、続けてそちらを登録する。
+  // 残っていなければホームへ遷移する。
+  // 「置き換える」「今回の分を追加する」経由でもキューを引き継がないと、
+  // 残りの項目がsessionStorageに取り残されたまま次のスキャンで上書きされ、
+  // ユーザーには「保存されなかった」ように見えてしまう。
+  function goToNextQueueItemOrHome() {
+    const raw = sessionStorage.getItem("scan-prefill-queue");
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw) as { total: number; items: unknown[] };
+        const restItems = parsed.items.slice(1);
+        if (restItems.length > 0) {
+          sessionStorage.setItem(
+            "scan-prefill-queue",
+            JSON.stringify({ total: parsed.total, items: restItems })
+          );
+          // 既に /accounts/new にいる場合、router.push だけでは再読み込みされないため
+          // 画面を確実に作り直すよう window.location で遷移する
+          window.location.href = "/accounts/new";
+          return;
+        }
+        sessionStorage.removeItem("scan-prefill-queue");
+      } catch {
+        sessionStorage.removeItem("scan-prefill-queue");
+      }
+    }
+    router.push("/");
+  }
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setErrorMessage("");
@@ -460,29 +489,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
       } else {
         const docRef = await addDoc(collection(db, "accounts"), { ...payload, createdAt: now });
         await addDoc(collection(db, "accounts", docRef.id, "updates"), updateRecord);
-
-        // スクショ由来のキューに次の項目が残っていれば、続けてそちらを登録する
-        const raw = sessionStorage.getItem("scan-prefill-queue");
-        if (raw) {
-          try {
-            const parsed = JSON.parse(raw) as { total: number; items: unknown[] };
-            const restItems = parsed.items.slice(1);
-            if (restItems.length > 0) {
-              sessionStorage.setItem(
-                "scan-prefill-queue",
-                JSON.stringify({ total: parsed.total, items: restItems })
-              );
-              // 既に /accounts/new にいる場合、router.push だけでは再読み込みされないため
-              // 画面を確実に作り直すよう window.location で遷移する
-              window.location.href = "/accounts/new";
-              return;
-            }
-            sessionStorage.removeItem("scan-prefill-queue");
-          } catch {
-            sessionStorage.removeItem("scan-prefill-queue");
-          }
-        }
-        router.push("/");
+        goToNextQueueItemOrHome();
       }
     } catch (error) {
       console.error(error);
@@ -503,7 +510,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
       const { payload, updateRecord } = buildPayloadAndUpdateRecord();
       await updateDoc(doc(db, "accounts", duplicateAccount.id), payload);
       await addDoc(collection(db, "accounts", duplicateAccount.id, "updates"), updateRecord);
-      router.push("/");
+      goToNextQueueItemOrHome();
     } catch (error) {
       console.error(error);
       setErrorMessage("保存に失敗しました。もう一度お試しください。");
@@ -544,7 +551,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
         source: "manual" as const,
         confirmedByUser: true,
       });
-      router.push("/");
+      goToNextQueueItemOrHome();
     } catch (error) {
       console.error(error);
       setErrorMessage("保存に失敗しました。もう一度お試しください。");
