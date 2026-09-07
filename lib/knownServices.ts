@@ -81,13 +81,18 @@ export const SERVICE_NAME_ALIASES: Record<string, { groupName: string; accountNa
 // (例: au PAYの画面はサービス名に「au PAY」を含むため、グループ統合後もPontaではなく
 // 「au PAYポイント運用」の名前で登録したい、といったケース向け)。
 const BRAND_POINT_INFO: {
-  keyword: string;
+  keyword: string | string[];
   groupName: string;
   pointName: string;
   investedName?: string;
 }[] = [
   { keyword: "PayPay", groupName: "PayPay", pointName: "PayPayポイント" },
-  { keyword: "au PAY", groupName: "au PAY｜Ponta", pointName: "Pontaポイント", investedName: "au PAYポイント運用" },
+  {
+    keyword: ["au PAY", "Ponta"],
+    groupName: "au PAY｜Ponta",
+    pointName: "Pontaポイント",
+    investedName: "au PAYポイント運用",
+  },
   { keyword: "dポイント", groupName: "d(ドコモ)", pointName: "dポイント" },
   { keyword: "楽天", groupName: "楽天", pointName: "楽天ポイント" },
   { keyword: "Vポイント", groupName: "Vポイント", pointName: "Vポイント" },
@@ -102,7 +107,8 @@ export function normalizeServiceName(
   }
 
   for (const brand of BRAND_POINT_INFO) {
-    if (rawName.includes(brand.keyword)) {
+    const keywords = Array.isArray(brand.keyword) ? brand.keyword : [brand.keyword];
+    if (keywords.some((keyword) => rawName.includes(keyword))) {
       return {
         groupName: brand.groupName,
         accountName: brand.pointName,
