@@ -94,10 +94,12 @@ function getSortPriority(acc: AccountWithId): number {
   const hasExpiry = Boolean(acc.expiryDate) || acc.name.includes("期間");
   const tier = hasExpiry ? 0 : 1; // 期間限定=0, 期限なし=1
 
+  // 「PayPayポイント(通常)」のように接尾辞が付く名前にも対応するため、末尾一致ではなく含むかで判定する。
+  // 「ポイント運用」のような名前を誤って「ポイント」に分類しないよう、「運用」を最優先でチェックする
   let category: number;
-  if (acc.name.endsWith("運用")) category = 2;
-  else if (acc.name.endsWith("残高")) category = 1;
-  else if (acc.name.endsWith("ポイント")) category = 0;
+  if (acc.name.includes("運用")) category = 2;
+  else if (acc.name.includes("残高")) category = 1;
+  else if (acc.name.includes("ポイント")) category = 0;
   else category = 3;
 
   return tier * 10 + category;
