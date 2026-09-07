@@ -23,7 +23,15 @@ interface AccountWithId extends AccountDoc {
 
 function formatBalance(balance?: number | null, unit?: string | null) {
   if (balance === undefined || balance === null) return "";
-  return unit === "円" ? `${balance.toLocaleString()}円` : `${balance.toLocaleString()}${unit ?? ""}`;
+  if (unit === "円") {
+    return (
+      <>
+        {balance.toLocaleString()}
+        <span style={{ fontSize: 11 }}>円</span>
+      </>
+    );
+  }
+  return `${balance.toLocaleString()}${unit ?? ""}`;
 }
 
 function balanceDisplay(acc: AccountWithId) {
@@ -33,10 +41,11 @@ function balanceDisplay(acc: AccountWithId) {
     acc.itemQuantity !== undefined &&
     acc.itemQuantity !== null
   ) {
-    return `${acc.faceValue.toLocaleString()}円 × ${acc.itemQuantity}枚 = ${formatBalance(
-      acc.currentBalance,
-      acc.balanceUnit
-    )}`;
+    return (
+      <>
+        {acc.faceValue.toLocaleString()}円 × {acc.itemQuantity}枚 = {formatBalance(acc.currentBalance, acc.balanceUnit)}
+      </>
+    );
   }
   if (acc.category === "points") {
     const yenValue = getYenValue(acc);
