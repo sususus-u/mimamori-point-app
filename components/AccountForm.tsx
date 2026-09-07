@@ -1053,12 +1053,17 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
 
         <div className="field">
           <label>有効期限の設定</label>
-          <div style={{ display: "flex", gap: 16 }}>
-            <label style={{ display: "flex", alignItems: "center", gap: 4 }}>
-              <input type="radio" checked={hasExpiry === true} onChange={() => setHasExpiry(true)} />
+          <div style={{ display: "flex", flexWrap: "nowrap", gap: 16 }}>
+            <label style={{ display: "flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}>
+              <input
+                type="radio"
+                checked={hasExpiry === true}
+                onChange={() => setHasExpiry(true)}
+                style={{ width: "auto", padding: 0 }}
+              />
               期間限定
             </label>
-            <label style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            <label style={{ display: "flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}>
               <input
                 type="radio"
                 checked={hasExpiry === false}
@@ -1066,6 +1071,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
                   setHasExpiry(false);
                   setExpiryDate("");
                 }}
+                style={{ width: "auto", padding: 0 }}
               />
               期限なし
             </label>
