@@ -756,7 +756,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
               </span>
             </div>
             <span style={{ fontSize: 13, textAlign: "center" }}>
-              スクショから複数件を検出しました。内容を確認して登録してください。
+              内容を確認して登録してください。
             </span>
           </div>
         )}
