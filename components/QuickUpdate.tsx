@@ -31,6 +31,13 @@ interface EditingRow {
   expiryDate: string;
 }
 
+// サービス名は読み取れなかったが数値だけ読み取れた場合に、ScanUpload側から引き継がれる情報
+interface PendingScan {
+  balance: number | null;
+  balanceUnit: string | null;
+  expiryDate: string | null;
+}
+
 function toDateInputValue(timestamp?: Timestamp | null): string {
   if (!timestamp) return "";
   const d = timestamp.toDate();
@@ -47,6 +54,19 @@ export default function QuickUpdate() {
   const [editingRows, setEditingRows] = useState<EditingRow[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [savedMessage, setSavedMessage] = useState("");
+  const [pendingScan, setPendingScan] = useState<PendingScan | null>(null);
+
+  // スクショでサービス名が読み取れなかった場合、ScanUpload側から引き継がれた数値がないか確認する
+  useEffect(() => {
+    const raw = sessionStorage.getItem("quick-update-pending-scan");
+    if (!raw) return;
+    try {
+      setPendingScan(JSON.parse(raw) as PendingScan);
+    } catch (error) {
+      console.error(error);
+      sessionStorage.removeItem("quick-update-pending-scan");
+    }
+  }, []);
 
   useEffect(() => {
     if (!uid) return;
@@ -80,15 +100,27 @@ export default function QuickUpdate() {
     setSelectedGroupKey(key);
     setSavedMessage("");
     setEditingRows(
-      items.map((acc) => ({
-        account: acc,
-        balance:
+      items.map((acc, index) => {
+        const balance =
           acc.currentBalance === undefined || acc.currentBalance === null
             ? ""
-            : String(acc.currentBalance),
-        expiryDate: toDateInputValue(acc.expiryDate as Timestamp | undefined),
-      }))
+            : String(acc.currentBalance);
+        const expiryDate = toDateInputValue(acc.expiryDate as Timestamp | undefined);
+        // スクショ由来の読み取り結果があれば、どのサービスか分からないため先頭行にのみ反映する
+        if (pendingScan && index === 0) {
+          return {
+            account: acc,
+            balance: pendingScan.balance !== null ? String(pendingScan.balance) : balance,
+            expiryDate: pendingScan.expiryDate ?? expiryDate,
+          };
+        }
+        return { account: acc, balance, expiryDate };
+      })
     );
+    if (pendingScan) {
+      sessionStorage.removeItem("quick-update-pending-scan");
+      setPendingScan(null);
+    }
   }
 
   function updateRow(index: number, field: "balance" | "expiryDate", value: string) {
@@ -135,6 +167,15 @@ export default function QuickUpdate() {
             一覧へ戻る
           </Link>
         </div>
+        {pendingScan && (
+          <p className="text-sm text-blue-700 bg-blue-50 rounded-md px-3 py-2">
+            スクショの読み取り結果:{pendingScan.balance}
+            {pendingScan.balanceUnit ?? ""}
+            {pendingScan.expiryDate ? `、期限${pendingScan.expiryDate}` : ""}
+            。該当するサービスを選んでください
+          </p>
+        )}
+
         <p className="text-sm text-gray-500">更新するサービスを選んでください</p>
         <p className="text-xs text-gray-400 flex items-center gap-1">
           <Lightbulb size={12} className="shrink-0" />

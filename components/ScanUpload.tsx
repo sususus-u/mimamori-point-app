@@ -137,8 +137,22 @@ export default function ScanUpload() {
       const investedPortion: number | null = data.investedPortion;
 
       if (!serviceName) {
-        setErrorMessage("サービス名を読み取れませんでした。手入力で登録してください。");
-        setIsProcessing(false);
+        if (totalBalance === null) {
+          setErrorMessage("サービス名を読み取れませんでした。手入力で登録してください。");
+          setIsProcessing(false);
+          return;
+        }
+        // サービス名は分からなくても数値は読み取れた場合、クイック更新画面へ引き継いで
+        // ユーザーに該当サービスを選んでもらう
+        sessionStorage.setItem(
+          "quick-update-pending-scan",
+          JSON.stringify({
+            balance: totalBalance,
+            balanceUnit: balanceUnit,
+            expiryDate: expiryDate,
+          })
+        );
+        router.push("/accounts/quick-update");
         return;
       }
 
