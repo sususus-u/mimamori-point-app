@@ -48,6 +48,8 @@ interface MatchItem {
   editExpiryDate: string;
   // 読み取りの確信度が低い項目(true の場合、枠色と注意文で強調する)
   balanceLowConfidence: boolean;
+  // 「通常」の残高計算結果がマイナスになった項目(true の場合、専用の注意文を追加表示する)
+  balanceNegative: boolean;
   expiryLowConfidence: boolean;
   // 「別サービスとして登録」を選んだ場合に登録フォームへ事前入力する名前(重複しない連番付きの名前)
   newName: string;
@@ -150,16 +152,23 @@ export default function ScanUpload() {
         name: string;
         balance: number | null;
         balanceLowConfidence: boolean;
+        // 「通常」の残高計算(totalBalance - limitedPortion.balance)がマイナスになった場合にtrue。
+        // AIの確信度とは別に、計算結果そのものがおかしいことをユーザーに気づいてもらうための専用フラグ
+        balanceNegative: boolean;
         expiryDate: string | null;
         expiryLowConfidence: boolean;
       }[] = [];
 
       if (limitedPortion) {
         if (totalBalance !== null) {
+          const normalBalance = totalBalance - limitedPortion.balance;
+          const normalBalanceNegative = normalBalance < 0;
           targets.push({
             name: `${accountName}(通常)`,
-            balance: totalBalance - limitedPortion.balance,
-            balanceLowConfidence: totalBalanceLowConfidence,
+            balance: normalBalance,
+            // マイナスになった場合は、AIの確信度に関わらず強制的に警告表示の対象にする
+            balanceLowConfidence: totalBalanceLowConfidence || normalBalanceNegative,
+            balanceNegative: normalBalanceNegative,
             expiryDate,
             expiryLowConfidence: expiryDateLowConfidence,
           });
@@ -168,6 +177,7 @@ export default function ScanUpload() {
           name: `${accountName}(期間限定)`,
           balance: limitedPortion.balance,
           balanceLowConfidence: limitedPortion.balanceConfidence === "low",
+          balanceNegative: false,
           expiryDate: limitedPortion.expiryDate,
           expiryLowConfidence: limitedPortion.expiryDateConfidence === "low",
         });
@@ -176,6 +186,7 @@ export default function ScanUpload() {
           name: accountName,
           balance: totalBalance,
           balanceLowConfidence: totalBalanceLowConfidence,
+          balanceNegative: false,
           expiryDate,
           expiryLowConfidence: expiryDateLowConfidence,
         });
@@ -187,6 +198,7 @@ export default function ScanUpload() {
           name: investedAccountName,
           balance: investedPortion,
           balanceLowConfidence: false,
+          balanceNegative: false,
           expiryDate: null,
           expiryLowConfidence: false,
         });
@@ -224,6 +236,7 @@ export default function ScanUpload() {
             editBalanceUnit: balanceUnit ?? existingData.balanceUnit ?? "",
             editExpiryDate: target.expiryDate ?? "",
             balanceLowConfidence: target.balance !== null && target.balanceLowConfidence,
+            balanceNegative: target.balance !== null && target.balanceNegative,
             expiryLowConfidence: target.expiryDate !== null && target.expiryLowConfidence,
             newName: suggestedNewName,
             sourceAccount: {
@@ -396,6 +409,11 @@ export default function ScanUpload() {
                 />
                 {item.balanceLowConfidence && (
                   <p className="text-xs text-amber-600 mt-1">読み取りに自信が持てませんでした。確認してください</p>
+                )}
+                {item.balanceNegative && (
+                  <p className="text-xs text-amber-600 mt-1">
+                    読み取った金額の計算結果がマイナスになりました。数値を確認してください
+                  </p>
                 )}
               </div>
               <div>
