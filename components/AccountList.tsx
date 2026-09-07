@@ -88,6 +88,29 @@ function sortAccounts(list: AccountWithId[], mode: "balance" | "name"): AccountW
   return [...yenItems, ...others];
 }
 
+// 「サービス別」タブのグループ内での固定表示順(期間限定/期限なし → ポイント/残高/運用/それ以外)。
+// 値が小さいほど先に表示する
+function getSortPriority(acc: AccountWithId): number {
+  const hasExpiry = Boolean(acc.expiryDate) || acc.name.includes("期間");
+  const tier = hasExpiry ? 0 : 1; // 期間限定=0, 期限なし=1
+
+  let category: number;
+  if (acc.name.endsWith("運用")) category = 2;
+  else if (acc.name.endsWith("残高")) category = 1;
+  else if (acc.name.endsWith("ポイント")) category = 0;
+  else category = 3;
+
+  return tier * 10 + category;
+}
+
+function sortServiceGroupItems(list: AccountWithId[]): AccountWithId[] {
+  return [...list].sort((a, b) => {
+    const diff = getSortPriority(a) - getSortPriority(b);
+    if (diff !== 0) return diff;
+    return a.name.localeCompare(b.name, "ja");
+  });
+}
+
 export default function AccountList() {
   const { uid, isLoading } = useAuth();
   const [accounts, setAccounts] = useState<AccountWithId[]>([]);
@@ -102,6 +125,8 @@ export default function AccountList() {
   const [withExpirySortMode, setWithExpirySortMode] = useState<"expiry" | "balance" | "name">(
     "expiry"
   );
+  // 「サービス別」タブでの、グループ自体の並び順(グループ内アイテムの順序とは独立)
+  const [groupSortMode, setGroupSortMode] = useState<"balance" | "name">("balance");
 
   // タブの選択状態を、画面遷移をまたいで(編集画面から戻ってきた時など)保持する
   useEffect(() => {
@@ -170,16 +195,18 @@ export default function AccountList() {
     serviceGroups.get(key)!.push(acc);
   }
   for (const [key, items] of serviceGroups) {
-    serviceGroups.set(key, sortAccounts(items, sortMode));
+    serviceGroups.set(key, sortServiceGroupItems(items));
   }
-  // グループごとの合計残高(円換算できるものだけの合計)。見出し表示にも流用する
+  // グループごとの合計残高(円換算できるものだけの合計)。見出し表示・グループの並び替えにも流用する
   const serviceGroupTotals = new Map<string, number>();
   for (const [key, items] of serviceGroups) {
     const total = items.reduce((sum, acc) => sum + (getYenValue(acc) ?? 0), 0);
     serviceGroupTotals.set(key, total);
   }
-  // グループ自体を合計残高の降順で並べる。合計が0(円換算できるアカウントがない場合を含む)のグループは、末尾に名前順で並べる
+  // グループ自体の並び順。「名前順」は単純に五十音順、「残高順」は合計残高の降順
+  // (合計が0(円換算できるアカウントがない場合を含む)のグループは、末尾に名前順で並べる)
   const serviceGroupKeys = Array.from(serviceGroups.keys()).sort((a, b) => {
+    if (groupSortMode === "name") return a.localeCompare(b, "ja");
     const totalA = serviceGroupTotals.get(a) ?? 0;
     const totalB = serviceGroupTotals.get(b) ?? 0;
     if (totalA > 0 && totalB > 0) return totalB - totalA;
@@ -491,14 +518,14 @@ export default function AccountList() {
             ].map((s) => (
               <button
                 key={s.key}
-                onClick={() => setSortMode(s.key as typeof sortMode)}
+                onClick={() => setGroupSortMode(s.key as typeof groupSortMode)}
                 style={{
                   fontSize: 12,
                   padding: "4px 10px",
                   borderRadius: "var(--radius-pill)",
-                  border: sortMode === s.key ? "none" : "1px solid #ddd",
-                  background: sortMode === s.key ? "var(--brand)" : "transparent",
-                  color: sortMode === s.key ? "#fff" : "#888",
+                  border: groupSortMode === s.key ? "none" : "1px solid #ddd",
+                  background: groupSortMode === s.key ? "var(--brand)" : "transparent",
+                  color: groupSortMode === s.key ? "#fff" : "#888",
                 }}
               >
                 {s.label}
