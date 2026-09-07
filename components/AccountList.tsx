@@ -172,9 +172,21 @@ export default function AccountList() {
   for (const [key, items] of serviceGroups) {
     serviceGroups.set(key, sortAccounts(items, sortMode));
   }
-  const serviceGroupKeys = Array.from(serviceGroups.keys()).sort((a, b) =>
-    a.localeCompare(b, "ja")
-  );
+  // グループごとの合計残高(円換算できるものだけの合計)。見出し表示にも流用する
+  const serviceGroupTotals = new Map<string, number>();
+  for (const [key, items] of serviceGroups) {
+    const total = items.reduce((sum, acc) => sum + (getYenValue(acc) ?? 0), 0);
+    serviceGroupTotals.set(key, total);
+  }
+  // グループ自体を合計残高の降順で並べる。合計が0(円換算できるアカウントがない場合を含む)のグループは、末尾に名前順で並べる
+  const serviceGroupKeys = Array.from(serviceGroups.keys()).sort((a, b) => {
+    const totalA = serviceGroupTotals.get(a) ?? 0;
+    const totalB = serviceGroupTotals.get(b) ?? 0;
+    if (totalA > 0 && totalB > 0) return totalB - totalA;
+    if (totalA > 0) return -1;
+    if (totalB > 0) return 1;
+    return a.localeCompare(b, "ja");
+  });
 
   function toggleMonth(key: string) {
     setExpandedMonths((prev) => {
@@ -499,11 +511,22 @@ export default function AccountList() {
             )}
             {serviceGroupKeys.map((key) => {
               const items = serviceGroups.get(key)!;
+              const total = serviceGroupTotals.get(key) ?? 0;
               return (
                 <div key={key} className="card" style={{ padding: 0, overflow: "hidden" }}>
-                  <p style={{ margin: 0, padding: "10px 14px", fontSize: 13, fontWeight: 500, background: "#faf8f6" }}>
-                    {key}
-                  </p>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      padding: "10px 14px",
+                      fontSize: 13,
+                      fontWeight: 500,
+                      background: "#faf8f6",
+                    }}
+                  >
+                    <span>{key}</span>
+                    {total > 0 && <span>¥{total.toLocaleString()}</span>}
+                  </div>
                   {items.map((acc) => {
                     const expiry = acc.expiryDate ? (acc.expiryDate as Timestamp).toDate() : null;
                     return (
