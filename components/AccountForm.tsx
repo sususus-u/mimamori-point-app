@@ -762,7 +762,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
         )}
 
         {scanProgress && scanProgress.total > 1 && (
-          <div style={{ display: "flex", flexDirection: "column", marginBottom: 20 }}>
+          <div style={{ display: "flex", flexDirection: "column", marginTop: 16, marginBottom: 20 }}>
             {scanProgress.current >= 2 && (
               <button
                 type="button"
@@ -773,8 +773,8 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
                   fontSize: 13,
                   border: "1px solid #ddd",
                   borderRadius: "var(--radius-pill)",
-                  background: "#fff",
-                  color: "#555",
+                  background: "#fef8f5",
+                  color: "#333",
                   marginTop: 8,
                 }}
               >
@@ -790,8 +790,8 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
                 fontSize: 13,
                 border: "1px solid #ddd",
                 borderRadius: "var(--radius-pill)",
-                background: "#fff",
-                color: "#555",
+                background: "#fef8f5",
+                color: "#333",
                 marginTop: 8,
               }}
             >
