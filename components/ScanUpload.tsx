@@ -15,7 +15,6 @@ import {
   where,
   getDocs,
   updateDoc,
-  addDoc,
   doc,
   serverTimestamp,
   Timestamp,
@@ -50,22 +49,10 @@ interface MatchItem {
   // 読み取りの確信度が低い項目(true の場合、枠色と注意文で強調する)
   balanceLowConfidence: boolean;
   expiryLowConfidence: boolean;
-  // 「別サービスとして登録」を選んだ場合に使う名前(重複しない連番付きの名前を初期値にする)
+  // 「別サービスとして登録」を選んだ場合に登録フォームへ事前入力する名前(重複しない連番付きの名前)
   newName: string;
-  // 「別サービスとして登録」時、既存口座から引き継ぐ設定値(category・通知タイミング等)
-  sourceAccount: Pick<
-    AccountDoc,
-    | "category"
-    | "customCategoryLabel"
-    | "isYenBased"
-    | "type"
-    | "notificationTiming"
-    | "groupName"
-    | "storageLocationMemo"
-    | "yenExchangeRate"
-    | "exchangeUnitCount"
-    | "exchangeUnitYen"
-  >;
+  // 「別サービスとして登録」時、既存口座から引き継ぐ設定値
+  sourceAccount: Pick<AccountDoc, "category" | "isYenBased" | "groupName">;
 }
 
 function timestampToInputValue(timestamp?: Timestamp | null): string {
@@ -241,15 +228,8 @@ export default function ScanUpload() {
             newName: suggestedNewName,
             sourceAccount: {
               category: existingData.category,
-              customCategoryLabel: existingData.customCategoryLabel,
               isYenBased: existingData.isYenBased,
-              type: existingData.type,
-              notificationTiming: existingData.notificationTiming,
               groupName: existingData.groupName,
-              storageLocationMemo: existingData.storageLocationMemo,
-              yenExchangeRate: existingData.yenExchangeRate,
-              exchangeUnitCount: existingData.exchangeUnitCount,
-              exchangeUnitYen: existingData.exchangeUnitYen,
             },
           });
         } else {
@@ -297,7 +277,7 @@ export default function ScanUpload() {
 
   function updateMatchField(
     index: number,
-    field: "editBalance" | "editBalanceUnit" | "editExpiryDate" | "newName",
+    field: "editBalance" | "editBalanceUnit" | "editExpiryDate",
     value: string
   ) {
     setMatchItems((prev) =>
@@ -348,66 +328,30 @@ export default function ScanUpload() {
     }
   }
 
-  // 「別サービスとして登録」: 既存口座は変更せず、読み取った内容を新しい名前の別口座として登録する
-  async function handleRegisterAsNew() {
-    if (!matchItems || !uid) return;
-    for (const item of matchItems) {
-      if (!item.newName.trim()) {
-        setErrorMessage("名前を入力してください。");
-        return;
-      }
-    }
+  // 「別サービスとして登録する」: 既存口座は変更せず、読み取った内容を新規登録キューに積んで
+  // 通常の登録フォーム(/accounts/new)へ引き継ぐ。名前は連番付きの候補を事前入力するだけで、
+  // 実際の登録はフォーム側でユーザーが内容を確認・編集してから行う
+  function handleRegisterAsNew() {
+    if (!matchItems) return;
 
-    setIsSaving(true);
-    setErrorMessage("");
-    try {
-      await Promise.all(
-        matchItems.map(async (item) => {
-          const now = serverTimestamp();
-          const payload: Omit<AccountDoc, "createdAt" | "updatedAt" | "lastUpdatedAt"> & {
-            createdAt: ReturnType<typeof serverTimestamp>;
-            updatedAt: ReturnType<typeof serverTimestamp>;
-            lastUpdatedAt: ReturnType<typeof serverTimestamp>;
-          } = {
-            ownerId: uid,
-            name: item.newName.trim(),
-            category: item.sourceAccount.category,
-            ...(item.sourceAccount.customCategoryLabel !== undefined
-              ? { customCategoryLabel: item.sourceAccount.customCategoryLabel }
-              : {}),
-            groupName: item.sourceAccount.groupName,
-            isYenBased: item.sourceAccount.isYenBased,
-            type: item.sourceAccount.type,
-            yenExchangeRate: item.sourceAccount.yenExchangeRate,
-            exchangeUnitCount: item.sourceAccount.exchangeUnitCount,
-            exchangeUnitYen: item.sourceAccount.exchangeUnitYen,
-            currentBalance: item.editBalance === "" ? undefined : Number(item.editBalance),
-            balanceUnit: item.editBalanceUnit || undefined,
-            expiryDate: item.editExpiryDate ? Timestamp.fromDate(new Date(item.editExpiryDate)) : null,
-            storageLocationMemo: item.sourceAccount.storageLocationMemo,
-            notificationTiming: item.sourceAccount.notificationTiming,
-            createdAt: now,
-            updatedAt: now,
-            lastUpdatedAt: now,
-          };
-          const docRef = await addDoc(collection(db, "accounts"), payload);
-          await addDoc(collection(db, "accounts", docRef.id, "updates"), {
-            recordedAt: now,
-            balance: item.editBalance === "" ? undefined : Number(item.editBalance),
-            expiryDate: item.editExpiryDate ? Timestamp.fromDate(new Date(item.editExpiryDate)) : null,
-            source: "screenshot" as const,
-            confirmedByUser: true,
-          });
-        })
-      );
+    const asNewItems: PrefillItem[] = matchItems.map((item) => ({
+      name: item.newName,
+      groupName: item.sourceAccount.groupName ?? "",
+      category: item.sourceAccount.category,
+      isYenBased: item.sourceAccount.isYenBased,
+      balance: item.editBalance,
+      balanceUnit: item.editBalanceUnit,
+      expiryDate: item.editExpiryDate,
+      balanceLowConfidence: item.balanceLowConfidence,
+      expiryLowConfidence: item.expiryLowConfidence,
+    }));
+    const queueItems = [...asNewItems, ...pendingQueueItems];
 
-      goToPendingQueueOrHome("別サービスとして登録しました");
-    } catch (error) {
-      console.error(error);
-      setErrorMessage("保存に失敗しました。もう一度お試しください。");
-    } finally {
-      setIsSaving(false);
-    }
+    sessionStorage.setItem(
+      "scan-prefill-queue",
+      JSON.stringify({ total: queueItems.length, items: queueItems })
+    );
+    router.push("/accounts/new");
   }
 
   function handleCancelConfirm() {
@@ -479,46 +423,46 @@ export default function ScanUpload() {
                 <p className="text-xs text-amber-600 mt-1">読み取りに自信が持てませんでした。確認してください</p>
               )}
             </div>
-
-            <div>
-              <label className="block text-xs font-medium mb-1">
-                別サービスとして登録する場合の名前
-              </label>
-              <input
-                type="text"
-                value={item.newName}
-                onChange={(e) => updateMatchField(index, "newName", e.target.value)}
-                className="w-full border rounded-md px-3 py-2 text-base"
-              />
-            </div>
           </div>
         ))}
 
         {errorMessage && <p className="text-sm text-red-600">{errorMessage}</p>}
 
-        <div className="flex flex-col gap-2">
-          <button
-            onClick={handleCancelConfirm}
-            disabled={isSaving}
-            className="w-full border rounded-md py-3 text-base font-medium disabled:opacity-50"
-          >
-            キャンセル
-          </button>
-          <button
-            onClick={handleRegisterAsNew}
-            disabled={isSaving}
-            className="w-full border rounded-md py-3 text-base font-medium disabled:opacity-50"
-          >
-            {isSaving ? "保存中..." : "別サービスとして登録"}
-          </button>
-          <button
-            onClick={handleConfirmSave}
-            disabled={isSaving}
-            className="w-full bg-gray-900 text-white rounded-md py-3 text-base font-medium disabled:opacity-50"
-          >
-            {isSaving ? "更新中..." : "この内容で更新する"}
-          </button>
+        <button
+          type="button"
+          onClick={handleConfirmSave}
+          disabled={isSaving}
+          className="btn-primary"
+          style={{ width: "100%" }}
+        >
+          {isSaving ? "更新中..." : "この内容で更新する"}
+        </button>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "16px 0" }}>
+          <div style={{ flex: 1, height: 1, background: "#eee" }} />
+          <span style={{ fontSize: 12, color: "#999" }}>または</span>
+          <div style={{ flex: 1, height: 1, background: "#eee" }} />
         </div>
+
+        <button
+          type="button"
+          onClick={handleRegisterAsNew}
+          disabled={isSaving}
+          className="btn-outline"
+          style={{ width: "100%" }}
+        >
+          別サービスとして登録する
+        </button>
+
+        <button
+          type="button"
+          onClick={handleCancelConfirm}
+          disabled={isSaving}
+          className="btn-ghost"
+          style={{ width: "100%", marginTop: 8 }}
+        >
+          キャンセル
+        </button>
       </div>
     );
   }
