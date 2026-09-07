@@ -505,6 +505,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
   function handleGoToPreviousItem() {
     const historyRaw = sessionStorage.getItem("scan-prefill-history");
     const queueRaw = sessionStorage.getItem("scan-prefill-queue");
+    console.log("[debug] scan-prefill-history:", historyRaw, "scan-prefill-queue:", queueRaw);
     if (!historyRaw || !queueRaw) return;
     try {
       const history = JSON.parse(historyRaw) as unknown[];
