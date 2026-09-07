@@ -466,6 +466,22 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
     if (raw) {
       try {
         const parsed = JSON.parse(raw) as { total: number; items: unknown[] };
+        // 「前の項目に戻る」で辿れるよう、今回保存した入力内容を履歴に積んでおく
+        const historyRaw = sessionStorage.getItem("scan-prefill-history");
+        const history = historyRaw ? (JSON.parse(historyRaw) as unknown[]) : [];
+        history.push({
+          name,
+          groupName,
+          category,
+          isYenBased,
+          balance,
+          balanceUnit,
+          expiryDate,
+          balanceLowConfidence,
+          expiryLowConfidence,
+        });
+        sessionStorage.setItem("scan-prefill-history", JSON.stringify(history));
+
         const restItems = parsed.items.slice(1);
         if (restItems.length > 0) {
           sessionStorage.setItem(
@@ -474,6 +490,50 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
           );
           // 既に /accounts/new にいる場合、router.push だけでは再読み込みされないため
           // 画面を確実に作り直すよう window.location で遷移する
+          window.location.href = "/accounts/new";
+          return;
+        }
+        sessionStorage.removeItem("scan-prefill-queue");
+      } catch {
+        sessionStorage.removeItem("scan-prefill-queue");
+      }
+    }
+    router.push("/");
+  }
+
+  // 「前の項目に戻る」: 履歴から直前の項目を取り出し、キューの先頭に戻して再読み込みする
+  function handleGoToPreviousItem() {
+    const historyRaw = sessionStorage.getItem("scan-prefill-history");
+    const queueRaw = sessionStorage.getItem("scan-prefill-queue");
+    if (!historyRaw || !queueRaw) return;
+    try {
+      const history = JSON.parse(historyRaw) as unknown[];
+      const previousItem = history.pop();
+      if (!previousItem) return;
+      const parsed = JSON.parse(queueRaw) as { total: number; items: unknown[] };
+      sessionStorage.setItem("scan-prefill-history", JSON.stringify(history));
+      sessionStorage.setItem(
+        "scan-prefill-queue",
+        JSON.stringify({ total: parsed.total, items: [previousItem, ...parsed.items] })
+      );
+      window.location.href = "/accounts/new";
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  // 「この項目は登録しない」: 保存せずにキューから現在の項目だけを取り除き、次があれば進み、無ければ一覧へ戻る
+  function handleSkipItem() {
+    const raw = sessionStorage.getItem("scan-prefill-queue");
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw) as { total: number; items: unknown[] };
+        const restItems = parsed.items.slice(1);
+        if (restItems.length > 0) {
+          sessionStorage.setItem(
+            "scan-prefill-queue",
+            JSON.stringify({ total: parsed.total, items: restItems })
+          );
           window.location.href = "/accounts/new";
           return;
         }
@@ -698,6 +758,19 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
             <span style={{ fontSize: 13, textAlign: "center" }}>
               スクショから複数件を検出しました。内容を確認して登録してください。
             </span>
+          </div>
+        )}
+
+        {scanProgress && scanProgress.total > 1 && (
+          <div style={{ display: "flex", justifyContent: "center", gap: 12, marginBottom: 20 }}>
+            {scanProgress.current >= 2 && (
+              <button type="button" className="btn-ghost" onClick={handleGoToPreviousItem}>
+                ◀ 前の項目に戻る
+              </button>
+            )}
+            <button type="button" className="btn-ghost" onClick={handleSkipItem}>
+              この項目は登録しない
+            </button>
           </div>
         )}
 
