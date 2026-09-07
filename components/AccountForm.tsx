@@ -762,13 +762,39 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
         )}
 
         {scanProgress && scanProgress.total > 1 && (
-          <div style={{ display: "flex", justifyContent: "center", gap: 12, marginBottom: 20 }}>
+          <div style={{ display: "flex", flexDirection: "column", marginBottom: 20 }}>
             {scanProgress.current >= 2 && (
-              <button type="button" className="btn-ghost" onClick={handleGoToPreviousItem}>
+              <button
+                type="button"
+                onClick={handleGoToPreviousItem}
+                style={{
+                  width: "100%",
+                  padding: "10px",
+                  fontSize: 13,
+                  border: "1px solid #ddd",
+                  borderRadius: "var(--radius-pill)",
+                  background: "#fff",
+                  color: "#555",
+                  marginTop: 8,
+                }}
+              >
                 ◀ 前の項目に戻る
               </button>
             )}
-            <button type="button" className="btn-ghost" onClick={handleSkipItem}>
+            <button
+              type="button"
+              onClick={handleSkipItem}
+              style={{
+                width: "100%",
+                padding: "10px",
+                fontSize: 13,
+                border: "1px solid #ddd",
+                borderRadius: "var(--radius-pill)",
+                background: "#fff",
+                color: "#555",
+                marginTop: 8,
+              }}
+            >
               この項目は登録しない
             </button>
           </div>
