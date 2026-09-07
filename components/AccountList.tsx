@@ -589,7 +589,11 @@ export default function AccountList() {
                         <div>
                           <p style={{ margin: 0, fontWeight: 500 }}>{acc.name}</p>
                           <p style={{ margin: 0, fontSize: 12, color: "#999" }}>
-                            {expiry ? `${expiry.getFullYear()}年${expiry.getMonth() + 1}月期限` : "期限なし"}
+                            {expiry
+                              ? `${expiry.getFullYear()}年${expiry.getMonth() + 1}月期限`
+                              : acc.name.includes("期間")
+                                ? "期限未入力"
+                                : "期限なし"}
                           </p>
                         </div>
                         <p style={{ margin: 0 }}>{balanceDisplay(acc)}</p>
