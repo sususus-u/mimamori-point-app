@@ -15,6 +15,7 @@ import {
   where,
   getDocs,
   updateDoc,
+  addDoc,
   doc,
   serverTimestamp,
   Timestamp,
@@ -49,6 +50,22 @@ interface MatchItem {
   // 読み取りの確信度が低い項目(true の場合、枠色と注意文で強調する)
   balanceLowConfidence: boolean;
   expiryLowConfidence: boolean;
+  // 「別サービスとして登録」を選んだ場合に使う名前(重複しない連番付きの名前を初期値にする)
+  newName: string;
+  // 「別サービスとして登録」時、既存口座から引き継ぐ設定値(category・通知タイミング等)
+  sourceAccount: Pick<
+    AccountDoc,
+    | "category"
+    | "customCategoryLabel"
+    | "isYenBased"
+    | "type"
+    | "notificationTiming"
+    | "groupName"
+    | "storageLocationMemo"
+    | "yenExchangeRate"
+    | "exchangeUnitCount"
+    | "exchangeUnitYen"
+  >;
 }
 
 function timestampToInputValue(timestamp?: Timestamp | null): string {
@@ -58,6 +75,23 @@ function timestampToInputValue(timestamp?: Timestamp | null): string {
   const mm = String(d.getMonth() + 1).padStart(2, "0");
   const dd = String(d.getDate()).padStart(2, "0");
   return `${yyyy}-${mm}-${dd}`;
+}
+
+// 「PayPay」→「PayPay(2)」のように、既存アカウントと重複しない名前を探す。
+// 「PayPay(2)」まで既にあれば「PayPay(3)」を返す。
+async function suggestUniqueName(uid: string, baseName: string): Promise<string> {
+  let n = 2;
+  for (;;) {
+    const candidate = `${baseName}(${n})`;
+    const q = query(
+      collection(db, "accounts"),
+      where("ownerId", "==", uid),
+      where("name", "==", candidate)
+    );
+    const snap = await getDocs(q);
+    if (snap.empty) return candidate;
+    n++;
+  }
 }
 
 export default function ScanUpload() {
@@ -192,6 +226,7 @@ export default function ScanUpload() {
         if (!snapshot.empty) {
           const existing = snapshot.docs[0];
           const existingData = existing.data() as AccountDoc;
+          const suggestedNewName = await suggestUniqueName(uid, target.name);
           newMatchItems.push({
             docId: existing.id,
             name: target.name,
@@ -203,6 +238,19 @@ export default function ScanUpload() {
             editExpiryDate: target.expiryDate ?? "",
             balanceLowConfidence: target.balance !== null && target.balanceLowConfidence,
             expiryLowConfidence: target.expiryDate !== null && target.expiryLowConfidence,
+            newName: suggestedNewName,
+            sourceAccount: {
+              category: existingData.category,
+              customCategoryLabel: existingData.customCategoryLabel,
+              isYenBased: existingData.isYenBased,
+              type: existingData.type,
+              notificationTiming: existingData.notificationTiming,
+              groupName: existingData.groupName,
+              storageLocationMemo: existingData.storageLocationMemo,
+              yenExchangeRate: existingData.yenExchangeRate,
+              exchangeUnitCount: existingData.exchangeUnitCount,
+              exchangeUnitYen: existingData.exchangeUnitYen,
+            },
           });
         } else {
           const guess = guessServiceInfo(accountName, balanceUnit);
@@ -249,12 +297,29 @@ export default function ScanUpload() {
 
   function updateMatchField(
     index: number,
-    field: "editBalance" | "editBalanceUnit" | "editExpiryDate",
+    field: "editBalance" | "editBalanceUnit" | "editExpiryDate" | "newName",
     value: string
   ) {
     setMatchItems((prev) =>
       prev ? prev.map((item, i) => (i === index ? { ...item, [field]: value } : item)) : prev
     );
+  }
+
+  // 確認画面での保存が終わった後、新規登録が必要な項目(pendingQueueItems)があれば続けてそちらへ、
+  // なければホームへ遷移する
+  function goToPendingQueueOrHome(successMessage: string) {
+    if (pendingQueueItems.length > 0) {
+      sessionStorage.setItem(
+        "scan-prefill-queue",
+        JSON.stringify({ total: pendingQueueItems.length, items: pendingQueueItems })
+      );
+      router.push("/accounts/new");
+      return;
+    }
+
+    setMatchItems(null);
+    setStatusMessage(successMessage);
+    setTimeout(() => router.push("/"), 800);
   }
 
   async function handleConfirmSave() {
@@ -274,19 +339,69 @@ export default function ScanUpload() {
         )
       );
 
-      // 更新分の保存が終わったら、新規登録が必要な項目があれば続けてそちらへ
-      if (pendingQueueItems.length > 0) {
-        sessionStorage.setItem(
-          "scan-prefill-queue",
-          JSON.stringify({ total: pendingQueueItems.length, items: pendingQueueItems })
-        );
-        router.push("/accounts/new");
+      goToPendingQueueOrHome("更新しました");
+    } catch (error) {
+      console.error(error);
+      setErrorMessage("保存に失敗しました。もう一度お試しください。");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  // 「別サービスとして登録」: 既存口座は変更せず、読み取った内容を新しい名前の別口座として登録する
+  async function handleRegisterAsNew() {
+    if (!matchItems || !uid) return;
+    for (const item of matchItems) {
+      if (!item.newName.trim()) {
+        setErrorMessage("名前を入力してください。");
         return;
       }
+    }
 
-      setMatchItems(null);
-      setStatusMessage("更新しました");
-      setTimeout(() => router.push("/"), 800);
+    setIsSaving(true);
+    setErrorMessage("");
+    try {
+      await Promise.all(
+        matchItems.map(async (item) => {
+          const now = serverTimestamp();
+          const payload: Omit<AccountDoc, "createdAt" | "updatedAt" | "lastUpdatedAt"> & {
+            createdAt: ReturnType<typeof serverTimestamp>;
+            updatedAt: ReturnType<typeof serverTimestamp>;
+            lastUpdatedAt: ReturnType<typeof serverTimestamp>;
+          } = {
+            ownerId: uid,
+            name: item.newName.trim(),
+            category: item.sourceAccount.category,
+            ...(item.sourceAccount.customCategoryLabel !== undefined
+              ? { customCategoryLabel: item.sourceAccount.customCategoryLabel }
+              : {}),
+            groupName: item.sourceAccount.groupName,
+            isYenBased: item.sourceAccount.isYenBased,
+            type: item.sourceAccount.type,
+            yenExchangeRate: item.sourceAccount.yenExchangeRate,
+            exchangeUnitCount: item.sourceAccount.exchangeUnitCount,
+            exchangeUnitYen: item.sourceAccount.exchangeUnitYen,
+            currentBalance: item.editBalance === "" ? undefined : Number(item.editBalance),
+            balanceUnit: item.editBalanceUnit || undefined,
+            expiryDate: item.editExpiryDate ? Timestamp.fromDate(new Date(item.editExpiryDate)) : null,
+            storageLocationMemo: item.sourceAccount.storageLocationMemo,
+            notificationTiming: item.sourceAccount.notificationTiming,
+            createdAt: now,
+            updatedAt: now,
+            lastUpdatedAt: now,
+          };
+          const docRef = await addDoc(collection(db, "accounts"), payload);
+          await addDoc(collection(db, "accounts", docRef.id, "updates"), {
+            recordedAt: now,
+            balance: item.editBalance === "" ? undefined : Number(item.editBalance),
+            expiryDate: item.editExpiryDate ? Timestamp.fromDate(new Date(item.editExpiryDate)) : null,
+            source: "screenshot" as const,
+            confirmedByUser: true,
+          });
+        })
+      );
+
+      goToPendingQueueOrHome("別サービスとして登録しました");
     } catch (error) {
       console.error(error);
       setErrorMessage("保存に失敗しました。もう一度お試しください。");
@@ -364,25 +479,44 @@ export default function ScanUpload() {
                 <p className="text-xs text-amber-600 mt-1">読み取りに自信が持てませんでした。確認してください</p>
               )}
             </div>
+
+            <div>
+              <label className="block text-xs font-medium mb-1">
+                別サービスとして登録する場合の名前
+              </label>
+              <input
+                type="text"
+                value={item.newName}
+                onChange={(e) => updateMatchField(index, "newName", e.target.value)}
+                className="w-full border rounded-md px-3 py-2 text-base"
+              />
+            </div>
           </div>
         ))}
 
         {errorMessage && <p className="text-sm text-red-600">{errorMessage}</p>}
 
-        <div className="flex gap-2">
+        <div className="flex flex-col gap-2">
           <button
             onClick={handleCancelConfirm}
             disabled={isSaving}
-            className="flex-1 border rounded-md py-3 text-base font-medium disabled:opacity-50"
+            className="w-full border rounded-md py-3 text-base font-medium disabled:opacity-50"
           >
             キャンセル
           </button>
           <button
+            onClick={handleRegisterAsNew}
+            disabled={isSaving}
+            className="w-full border rounded-md py-3 text-base font-medium disabled:opacity-50"
+          >
+            {isSaving ? "保存中..." : "別サービスとして登録"}
+          </button>
+          <button
             onClick={handleConfirmSave}
             disabled={isSaving}
-            className="flex-1 bg-gray-900 text-white rounded-md py-3 text-base font-medium disabled:opacity-50"
+            className="w-full bg-gray-900 text-white rounded-md py-3 text-base font-medium disabled:opacity-50"
           >
-            {isSaving ? "保存中..." : "この内容で保存"}
+            {isSaving ? "更新中..." : "この内容で更新する"}
           </button>
         </div>
       </div>
