@@ -761,45 +761,6 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
           </div>
         )}
 
-        {scanProgress && scanProgress.total > 1 && (
-          <div style={{ display: "flex", flexDirection: "column", marginTop: 16, marginBottom: 20 }}>
-            {scanProgress.current >= 2 && (
-              <button
-                type="button"
-                onClick={handleGoToPreviousItem}
-                style={{
-                  width: "100%",
-                  padding: "10px",
-                  fontSize: 13,
-                  border: "1px solid #ddd",
-                  borderRadius: "var(--radius-pill)",
-                  background: "#fef8f5",
-                  color: "#333",
-                  marginTop: 8,
-                }}
-              >
-                ◀ 前の項目に戻る
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={handleSkipItem}
-              style={{
-                width: "100%",
-                padding: "10px",
-                fontSize: 13,
-                border: "1px solid #ddd",
-                borderRadius: "var(--radius-pill)",
-                background: "#fef8f5",
-                color: "#333",
-                marginTop: 8,
-              }}
-            >
-              この項目は登録しない
-            </button>
-          </div>
-        )}
-
         <div className="field">
           <label>グループ名(任意)</label>
           <div style={{ position: "relative" }}>
@@ -1165,6 +1126,45 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
         </div>
 
         {errorMessage && <p style={{ fontSize: 13, color: "#b3261e", marginBottom: 20 }}>{errorMessage}</p>}
+
+        {scanProgress && scanProgress.total > 1 && (
+          <div style={{ display: "flex", flexDirection: "column", marginTop: 16, marginBottom: 20 }}>
+            {scanProgress.current >= 2 && (
+              <button
+                type="button"
+                onClick={handleGoToPreviousItem}
+                style={{
+                  width: "100%",
+                  padding: "10px",
+                  fontSize: 13,
+                  border: "1px solid #ddd",
+                  borderRadius: "var(--radius-pill)",
+                  background: "#fef8f5",
+                  color: "#333",
+                  marginTop: 8,
+                }}
+              >
+                ◀ 前の項目に戻る
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={handleSkipItem}
+              style={{
+                width: "100%",
+                padding: "10px",
+                fontSize: 13,
+                border: "1px solid #ddd",
+                borderRadius: "var(--radius-pill)",
+                background: "#fef8f5",
+                color: "#333",
+                marginTop: 8,
+              }}
+            >
+              この項目は登録しない
+            </button>
+          </div>
+        )}
 
         {!isEditMode && duplicateAccount ? (
           <>
