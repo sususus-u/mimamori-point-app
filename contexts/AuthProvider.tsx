@@ -11,7 +11,7 @@ import {
   type ReactNode,
 } from "react";
 import { onAuthStateChanged, signInAnonymously, type User } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { auth, customTokenSignInReady } from "@/lib/firebase";
 
 interface AuthContextValue {
   /** サインイン処理が完了するまで true。読み込み中の表示に使う */
@@ -30,23 +30,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user: User | null) => {
-      if (user) {
-        setUid(user.uid);
-        setIsLoading(false);
-      } else {
-        // まだ誰もサインインしていない場合は、匿名で自動サインインする
-        try {
-          await signInAnonymously(auth);
-          // 成功すると、この onAuthStateChanged が再度呼ばれて user が入る
-        } catch (error) {
-          console.error("匿名サインインに失敗しました", error);
+    let unsubscribe: (() => void) | undefined;
+    let cancelled = false;
+
+    // ハブからのカスタムトークンログイン処理(モジュール読み込み時点で開始済み)が
+    // 終わるまで、匿名サインインの判定を始めない。先にonAuthStateChangedを
+    // 購読してしまうと、永続化復元で残っていた匿名ユーザーをそのまま
+    // 使ってしまう競合状態が起きるため。
+    customTokenSignInReady.then(() => {
+      if (cancelled) return;
+      unsubscribe = onAuthStateChanged(auth, async (user: User | null) => {
+        if (user) {
+          setUid(user.uid);
           setIsLoading(false);
+        } else {
+          // まだ誰もサインインしていない場合は、匿名で自動サインインする
+          try {
+            await signInAnonymously(auth);
+            // 成功すると、この onAuthStateChanged が再度呼ばれて user が入る
+          } catch (error) {
+            console.error("匿名サインインに失敗しました", error);
+            setIsLoading(false);
+          }
         }
-      }
+      });
     });
 
-    return () => unsubscribe();
+    return () => {
+      cancelled = true;
+      unsubscribe?.();
+    };
   }, []);
 
   return (
