@@ -96,6 +96,17 @@ button {
   color: var(--brand);
 }
 
+.appbar-bell-badge {
+  position: absolute;
+  top: 9px;
+  right: 9px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #b3261e;
+  border: 1px solid #fff;
+}
+
 .scroll {
   flex: 1;
   overflow-y: auto;

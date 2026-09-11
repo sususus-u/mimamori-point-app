@@ -6,7 +6,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { Wallet, Plus, Menu, LayoutGrid, Bell } from "lucide-react";
+import { useAuth } from "@/contexts/AuthProvider";
 
 const HUB_URL = "https://okizukibiyori.com/";
 const HUB_NOTIFICATION_SETTINGS_URL = "https://okizukibiyori.com/settings";
@@ -28,6 +30,30 @@ function getTitle(pathname: string): string {
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const { uid } = useAuth();
+  const [hubPushEnabled, setHubPushEnabled] = useState(false);
+
+  // ハブ側で、このアプリの通知がONになっているか(ベルマークのバッジ表示用)。
+  // ハブのAPIキーをブラウザに晒さないよう、/api/push-status 経由で問い合わせる。
+  // 未ログイン・OFF・問い合わせ失敗はすべてバッジ非表示(false)扱い。
+  useEffect(() => {
+    if (!uid) {
+      setHubPushEnabled(false);
+      return;
+    }
+    let cancelled = false;
+    fetch(`/api/push-status?uid=${encodeURIComponent(uid)}`)
+      .then((r) => (r.ok ? r.json() : { enabled: false }))
+      .then((data) => {
+        if (!cancelled) setHubPushEnabled(data.enabled === true);
+      })
+      .catch(() => {
+        if (!cancelled) setHubPushEnabled(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [uid]);
 
   const tabs = [
     { href: "/", label: "一覧", icon: Wallet, active: pathname === "/" },
@@ -57,8 +83,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             href={HUB_NOTIFICATION_SETTINGS_URL}
             className="appbar-home"
             aria-label="通知設定(ハブ)"
+            style={{ position: "relative" }}
           >
             <Bell size={20} />
+            {hubPushEnabled && <span className="appbar-bell-badge" aria-hidden="true" />}
           </a>
           <a href={HUB_URL} className="appbar-home" aria-label="きづきびより ハブに戻る">
             <LayoutGrid size={20} />
