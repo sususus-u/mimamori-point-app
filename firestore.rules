@@ -15,6 +15,11 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == ownerId;
     }
 
+    // 更新時に ownerId を書き換えられない(=有料化のレコード数集計がずれない)ようにする
+    function ownerIdUnchanged() {
+      return request.resource.data.ownerId == resource.data.ownerId;
+    }
+
     // --- users/{uid} ---------------------------------------------------
     match /users/{uid} {
       allow read, write: if isSignedIn() && request.auth.uid == uid;
@@ -22,7 +27,8 @@ service cloud.firestore {
 
     // --- accounts/{accountId} ------------------------------------------
     match /accounts/{accountId} {
-      allow read, update, delete: if isOwner(resource.data.ownerId);
+      allow read, delete: if isOwner(resource.data.ownerId);
+      allow update: if isOwner(resource.data.ownerId) && ownerIdUnchanged();
       allow create: if isOwner(request.resource.data.ownerId);
 
       // --- accounts/{accountId}/updates/{updateId} ----------------------
@@ -33,7 +39,8 @@ service cloud.firestore {
 
     // --- outcome_events/{eventId} ---------------------------------------
     match /outcome_events/{eventId} {
-      allow read, update, delete: if isOwner(resource.data.ownerId);
+      allow read, delete: if isOwner(resource.data.ownerId);
+      allow update: if isOwner(resource.data.ownerId) && ownerIdUnchanged();
       allow create: if isOwner(request.resource.data.ownerId);
     }
   }
