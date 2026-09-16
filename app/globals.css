@@ -11,6 +11,9 @@
   --brand: #6e2a32;
   --brand-dark: #56212a;
   --brand-surface: #f7f1ec;
+  /* 新着お知らせのベルバッジ用。警告色(アンバー系)や
+     ブランドカラーとは別の意味を持つ、金色のセマンティックカラー */
+  --gold: #a6832a;
 
   --radius-card: 16px;
   --radius-pill: 100px;
@@ -94,6 +97,155 @@ button {
 
 .appbar-home:active {
   color: var(--brand);
+}
+
+.appbar-bell {
+  position: relative;
+}
+
+/* --- お知らせ画面 --- */
+
+.badge-dot {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--gold);
+  border: 1.5px solid #fff;
+}
+
+.loading-state,
+.empty-state {
+  text-align: center;
+  padding: 48px 14px;
+  color: #999;
+  font-size: 13px;
+}
+
+.push-toggle {
+  margin-bottom: 20px;
+}
+
+.push-toggle-message {
+  font-size: 12px;
+  color: #777;
+  margin: 8px 2px 0;
+}
+
+.settings-card {
+  background: #fff;
+  border: 0.5px solid #eee;
+  border-radius: var(--radius-card);
+  padding: 0 16px;
+}
+
+.settings-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 0;
+  gap: 10px;
+}
+
+.settings-row .label {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.settings-row .sub {
+  font-size: 12px;
+  color: #999;
+  margin-top: 2px;
+}
+
+.switch {
+  width: 42px;
+  height: 24px;
+  border-radius: 100px;
+  background: #ddd;
+  position: relative;
+  cursor: pointer;
+  flex-shrink: 0;
+  border: none;
+  padding: 0;
+}
+
+.switch.on {
+  background: var(--brand);
+}
+
+.switch::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  transition: left 0.15s;
+}
+
+.switch.on::after {
+  left: 20px;
+}
+
+.switch:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.notif-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 0.5px solid #eee;
+  margin-bottom: 16px;
+}
+
+.notif-tabs button {
+  flex: 1;
+  background: none;
+  border: none;
+  padding: 10px 4px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #999;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+}
+
+.notif-tabs button.active {
+  color: var(--brand);
+  border-bottom-color: var(--brand);
+}
+
+.notif-card {
+  background: #fff;
+  border: 0.5px solid #eee;
+  border-radius: var(--radius-card);
+  padding: 14px;
+  margin-bottom: 10px;
+}
+
+.notif-title {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.notif-desc {
+  font-size: 13px;
+  color: #666;
+  margin-top: 4px;
+  line-height: 1.6;
+}
+
+.notif-time {
+  font-size: 11px;
+  color: #999;
+  margin-top: 8px;
 }
 
 .scroll {

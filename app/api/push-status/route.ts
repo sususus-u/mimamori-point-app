@@ -35,3 +35,42 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ enabled: false });
   }
 }
+
+// お知らせ画面のスイッチから、このアプリぶんの通知ON/OFFだけを切り替える窓口。
+// ブラウザのPush購読情報(endpoint/keys)はハブのオリジンでしか取得できないため、
+// ここではuidを渡してハブ側に「そのuidの既存購読を探してapps[app]を書き換える」
+// 処理を任せる。まだ一件も購読が無い(=ハブ側で通知を許可したことがない)場合は
+// ハブが404 no_subscriptionを返すので、そのまま伝える。
+export async function PATCH(req: NextRequest) {
+  const body: unknown = await req.json().catch(() => null);
+  const uid = body && typeof body === "object" ? (body as Record<string, unknown>).uid : null;
+  const enabled =
+    body && typeof body === "object" ? (body as Record<string, unknown>).enabled : null;
+
+  if (typeof uid !== "string" || !UID_PATTERN.test(uid) || typeof enabled !== "boolean") {
+    return NextResponse.json({ error: "uid and enabled are required" }, { status: 400 });
+  }
+
+  if (!process.env.DASHBOARD_API_KEY) {
+    return NextResponse.json({ error: "failed" }, { status: 502 });
+  }
+
+  try {
+    const hubRes = await fetch(HUB_PUSH_STATUS_URL, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        "x-dashboard-key": process.env.DASHBOARD_API_KEY,
+      },
+      body: JSON.stringify({ uid, app: APP_ID, enabled }),
+    });
+    const data = await hubRes.json().catch(() => ({}));
+    if (!hubRes.ok) {
+      return NextResponse.json({ error: data.error ?? "failed" }, { status: hubRes.status });
+    }
+    return NextResponse.json({ enabled: data.enabled === true });
+  } catch (error) {
+    console.error("push-status patch error", error);
+    return NextResponse.json({ error: "failed" }, { status: 502 });
+  }
+}

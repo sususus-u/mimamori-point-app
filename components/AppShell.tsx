@@ -8,10 +8,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Wallet, Plus, Menu, LayoutGrid, Bell, BellOff } from "lucide-react";
+import { doc, onSnapshot, type Timestamp } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthProvider";
 
 const HUB_URL = "https://okizukibiyori.com/";
-const HUB_NOTIFICATION_SETTINGS_URL = "https://okizukibiyori.com/settings";
 
 const SCREEN_TITLES: Record<string, string> = {
   "/": "サービス一覧",
@@ -20,6 +21,7 @@ const SCREEN_TITLES: Record<string, string> = {
   "/accounts/quick-update": "クイック更新",
   "/menu": "メニュー",
   "/reports": "実績",
+  "/notifications": "お知らせ",
 };
 
 function getTitle(pathname: string): string {
@@ -55,6 +57,54 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     };
   }, [uid]);
 
+  // 運営からのお知らせの「最後に見た日時」。/notifications側でタブを開いた時に
+  // users/{uid}.announcements_seen_at へ書き込み、ここでリアルタイムに受け取って
+  // ベルの新着ドットを消す。
+  const [announcementsSeenAt, setAnnouncementsSeenAt] = useState<Timestamp | null>(null);
+  useEffect(() => {
+    if (!uid) {
+      setAnnouncementsSeenAt(null);
+      return;
+    }
+    const unsubscribe = onSnapshot(doc(db, "users", uid), (snap) => {
+      const data = snap.data();
+      setAnnouncementsSeenAt((data?.announcements_seen_at as Timestamp | undefined) ?? null);
+    });
+    return () => unsubscribe();
+  }, [uid]);
+
+  // 運営からのお知らせの最新公開日時。ハブ側のannouncementsはFirestoreの直接
+  // 購読ができない(DASHBOARD_API_KEY経由のサーバー中継のため)ので、
+  // ベルの新着ドット判定用にここで一度だけ取得する。
+  const [latestAnnouncementAt, setLatestAnnouncementAt] = useState<string | null>(null);
+  useEffect(() => {
+    if (!uid) {
+      setLatestAnnouncementAt(null);
+      return;
+    }
+    let cancelled = false;
+    fetch("/api/announcements")
+      .then((r) => (r.ok ? r.json() : { announcements: [] }))
+      .then((data) => {
+        if (cancelled) return;
+        const list = Array.isArray(data.announcements) ? data.announcements : [];
+        setLatestAnnouncementAt(list.length > 0 ? list[0].publishedAt : null);
+      })
+      .catch(() => {
+        if (!cancelled) setLatestAnnouncementAt(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [uid]);
+
+  // 新着があれば、通知のON/OFFに関わらずベルの右上に点を表示する
+  // (通知がOFFでも新着があれば点は表示し、状態を正直に伝える)。
+  const hasNewAnnouncement =
+    latestAnnouncementAt !== null &&
+    (!announcementsSeenAt ||
+      new Date(latestAnnouncementAt).getTime() > announcementsSeenAt.toMillis());
+
   const tabs = [
     { href: "/", label: "一覧", icon: Wallet, active: pathname === "/" },
     {
@@ -79,13 +129,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <h1 className="appbar-title">{getTitle(pathname)}</h1>
         </div>
         <div style={{ display: "flex", alignItems: "center" }}>
-          <a
-            href={HUB_NOTIFICATION_SETTINGS_URL}
-            className="appbar-home"
-            aria-label="通知設定(ハブ)"
-          >
+          <Link href="/notifications" className="appbar-home appbar-bell" aria-label="お知らせ">
             {hubPushEnabled ? <Bell size={20} /> : <BellOff size={20} />}
-          </a>
+            {hasNewAnnouncement && <span className="badge-dot" />}
+          </Link>
           <a href={HUB_URL} className="appbar-home" aria-label="きづきびより ハブに戻る">
             <LayoutGrid size={20} />
           </a>
