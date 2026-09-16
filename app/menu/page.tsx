@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { BarChart3, ChevronRight, ExternalLink, FileText, User } from "lucide-react";
+import AccountSettings from "@/components/AccountSettings";
 
 const HUB_TERMS_URL = "https://okizukibiyori.com/terms#たまりびより";
 const HUB_PRIVACY_URL = "https://okizukibiyori.com/privacy#たまりびより";
@@ -43,9 +44,7 @@ export default function MenuPage() {
           <User size={18} color="var(--brand)" style={{ marginTop: 1, flexShrink: 0 }} />
           <div style={{ flex: 1 }}>
             <p style={{ fontSize: 14, fontWeight: 500, marginBottom: 4 }}>アカウント</p>
-            <p style={{ fontSize: 12, color: "#999", lineHeight: 1.6 }}>
-              表示名などのアカウント設定は、準備中です。ログイン状態は「きづきびより ハブ」と共通です。
-            </p>
+            <AccountSettings />
           </div>
         </div>
 
