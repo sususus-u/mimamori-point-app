@@ -3,6 +3,10 @@ rules_version = '2';
 // ポイント・電子マネー期限管理アプリ
 // MVPは個人利用のみ(共有機能なし)を前提とした匿名認証ベースのルール。
 // たべゴロっとチェックと同様、Firebase Anonymous Auth の UID を ownerId として利用する。
+//
+// 注意: Firebase プロジェクト okizukibiyori は姉妹アプリと共用のため、
+// このファイルだけを firebase deploy すると他アプリのルールが消える。
+// firebase.json からは外してあるので、変更はルール全体を管理している側で反映すること。
 
 service cloud.firestore {
   match /databases/{database}/documents {
