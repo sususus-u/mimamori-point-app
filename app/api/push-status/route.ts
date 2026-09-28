@@ -1,23 +1,22 @@
-// ハブ(おきづきびより)へ、ログイン中の利用者(uid)がこのアプリの通知をONに
+// ハブ(おきづきびより)へ、ログイン中の利用者がこのアプリの通知をONに
 // しているかを問い合わせる中継。ハブのAPIキー(DASHBOARD_API_KEY、ダッシュボード
 // 機能と共通の鍵)をブラウザに露出させないため、必ずこのサーバー関数を経由させる。
+// 利用者は Authorization: Bearer <IDトークン> で確かめ、トークンから取り出したuidだけを使う
+// (画面から送られたuidは受け取らない)。
 // 問い合わせ失敗時もエラーにはせず enabled:false を返す(ヘッダーのベルマークの
 // バッジを出さないだけで、機能自体は止めない)。
 
 import { NextRequest, NextResponse } from "next/server";
+import { verifyBearerIdToken } from "@/lib/verifyIdToken";
 
-const UID_PATTERN = /^[A-Za-z0-9_-]{1,128}$/;
 const HUB_PUSH_STATUS_URL = "https://okizukibiyori.com/api/push/status";
 const APP_ID = "tamari-biyori";
+const NO_STORE = { "Cache-Control": "private, no-store" };
 
 export async function GET(req: NextRequest) {
-  const uid = req.nextUrl.searchParams.get("uid") ?? "";
-  if (!UID_PATTERN.test(uid)) {
-    return NextResponse.json({ error: "invalid uid" }, { status: 400 });
-  }
-
-  if (!process.env.DASHBOARD_API_KEY) {
-    return NextResponse.json({ enabled: false });
+  const uid = await verifyBearerIdToken(req.headers.get("authorization"));
+  if (!uid || !process.env.DASHBOARD_API_KEY) {
+    return NextResponse.json({ enabled: false }, { headers: NO_STORE });
   }
 
   try {
@@ -26,13 +25,13 @@ export async function GET(req: NextRequest) {
       headers: { "x-dashboard-key": process.env.DASHBOARD_API_KEY },
     });
     if (!hubRes.ok) {
-      return NextResponse.json({ enabled: false });
+      return NextResponse.json({ enabled: false }, { headers: NO_STORE });
     }
     const data = await hubRes.json();
-    return NextResponse.json({ enabled: data.enabled === true });
+    return NextResponse.json({ enabled: data.enabled === true }, { headers: NO_STORE });
   } catch (error) {
     console.error("push-status error", error);
-    return NextResponse.json({ enabled: false });
+    return NextResponse.json({ enabled: false }, { headers: NO_STORE });
   }
 }
 
@@ -42,17 +41,21 @@ export async function GET(req: NextRequest) {
 // 処理を任せる。まだ一件も購読が無い(=ハブ側で通知を許可したことがない)場合は
 // ハブが404 no_subscriptionを返すので、そのまま伝える。
 export async function PATCH(req: NextRequest) {
+  const uid = await verifyBearerIdToken(req.headers.get("authorization"));
+  if (!uid) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401, headers: NO_STORE });
+  }
+
   const body: unknown = await req.json().catch(() => null);
-  const uid = body && typeof body === "object" ? (body as Record<string, unknown>).uid : null;
   const enabled =
     body && typeof body === "object" ? (body as Record<string, unknown>).enabled : null;
 
-  if (typeof uid !== "string" || !UID_PATTERN.test(uid) || typeof enabled !== "boolean") {
-    return NextResponse.json({ error: "uid and enabled are required" }, { status: 400 });
+  if (typeof enabled !== "boolean") {
+    return NextResponse.json({ error: "enabled is required" }, { status: 400, headers: NO_STORE });
   }
 
   if (!process.env.DASHBOARD_API_KEY) {
-    return NextResponse.json({ error: "failed" }, { status: 502 });
+    return NextResponse.json({ error: "failed" }, { status: 502, headers: NO_STORE });
   }
 
   try {
@@ -66,11 +69,14 @@ export async function PATCH(req: NextRequest) {
     });
     const data = await hubRes.json().catch(() => ({}));
     if (!hubRes.ok) {
-      return NextResponse.json({ error: data.error ?? "failed" }, { status: hubRes.status });
+      return NextResponse.json(
+        { error: data.error ?? "failed" },
+        { status: hubRes.status, headers: NO_STORE }
+      );
     }
-    return NextResponse.json({ enabled: data.enabled === true });
+    return NextResponse.json({ enabled: data.enabled === true }, { headers: NO_STORE });
   } catch (error) {
     console.error("push-status patch error", error);
-    return NextResponse.json({ error: "failed" }, { status: 502 });
+    return NextResponse.json({ error: "failed" }, { status: 502, headers: NO_STORE });
   }
 }

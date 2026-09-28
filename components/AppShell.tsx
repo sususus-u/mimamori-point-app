@@ -11,6 +11,7 @@ import { Wallet, Plus, Menu, LayoutGrid, Bell, BellOff } from "lucide-react";
 import { doc, onSnapshot, type Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthProvider";
+import { authFetch } from "@/lib/authFetch";
 
 const HUB_URL = "https://okizukibiyori.com/";
 
@@ -44,7 +45,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       return;
     }
     let cancelled = false;
-    fetch(`/api/push-status?uid=${encodeURIComponent(uid)}`)
+    authFetch("/api/push-status")
       .then((r) => (r.ok ? r.json() : { enabled: false }))
       .then((data) => {
         if (!cancelled) setHubPushEnabled(data.enabled === true);

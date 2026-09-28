@@ -13,6 +13,7 @@ import { useEffect, useState } from "react";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthProvider";
+import { authFetch } from "@/lib/authFetch";
 
 export default function AccountSettings() {
   const { uid } = useAuth();
@@ -36,7 +37,7 @@ export default function AccountSettings() {
         return;
       }
       try {
-        const res = await fetch(`/api/user-name?uid=${encodeURIComponent(uid)}`);
+        const res = await authFetch("/api/user-name");
         const data = await res.json();
         if (!cancelled && data.name) setDisplayName(data.name);
       } catch {

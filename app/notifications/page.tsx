@@ -13,6 +13,7 @@ import { useEffect, useState } from "react";
 import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthProvider";
+import { authFetch } from "@/lib/authFetch";
 
 interface Announcement {
   id: string;
@@ -49,7 +50,7 @@ function PushToggle() {
   useEffect(() => {
     if (!uid) return;
     let cancelled = false;
-    fetch(`/api/push-status?uid=${encodeURIComponent(uid)}`)
+    authFetch("/api/push-status")
       .then((r) => (r.ok ? r.json() : { enabled: false }))
       .then((data) => {
         if (!cancelled) setEnabled(data.enabled === true);
@@ -68,10 +69,10 @@ function PushToggle() {
     setSaving(true);
     setMessage(null);
     try {
-      const res = await fetch("/api/push-status", {
+      const res = await authFetch("/api/push-status", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ uid, enabled: next }),
+        body: JSON.stringify({ enabled: next }),
       });
       const data = await res.json();
       if (!res.ok) {
