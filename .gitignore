@@ -42,3 +42,6 @@ next-env.d.ts
 
 .vercel
 .env*
+
+# firebase admin service account keys
+*firebase-adminsdk*.json
