@@ -33,13 +33,19 @@ function getTitle(pathname: string): string {
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { uid } = useAuth();
-  const [hubPushEnabled, setHubPushEnabled] = useState(false);
+  const { uid, isLoading } = useAuth();
+  // null は「ハブに問い合わせ中」。答えが返るまでOFF(斜線)を見せてしまうと、
+  // ONの人には一瞬OFFに見えてから切り替わるため、確定までは薄いベルを出す。
+  // 結果は端末に保存しない方針なので、毎回この確認中の状態から始まる。
+  const [hubPushEnabled, setHubPushEnabled] = useState<boolean | null>(null);
 
   // ハブ側で、このアプリの通知がONになっているか(ベルアイコンの形状切り替え用)。
   // ハブのAPIキーをブラウザに晒さないよう、/api/push-status 経由で問い合わせる。
-  // 未ログイン・OFF・問い合わせ失敗はすべて「OFF」扱い(BellOffアイコン表示)。
+  // OFF・ログイン失敗・問い合わせ失敗はすべて「OFF」扱い(BellOffアイコン表示)。
   useEffect(() => {
+    // サインイン処理中は、まだ問い合わせようがないので確認中のまま待つ。
+    if (isLoading) return;
+    // ログインできなければ問い合わせようがないので、確認中のまま残さずOFFで確定する。
     if (!uid) {
       setHubPushEnabled(false);
       return;
@@ -56,7 +62,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [uid]);
+  }, [uid, isLoading]);
 
   // 運営からのお知らせの「最後に見た日時」。/notifications側でタブを開いた時に
   // users/{uid}.announcements_seen_at へ書き込み、ここでリアルタイムに受け取って
@@ -131,7 +137,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </div>
         <div style={{ display: "flex", alignItems: "center" }}>
           <Link href="/notifications" className="appbar-home appbar-bell" aria-label="お知らせ">
-            {hubPushEnabled ? <Bell size={20} /> : <BellOff size={20} />}
+            {/* 確認中: 斜線のない薄いベル / ON: 通常のベル / OFF: 斜線入りのベル */}
+            {hubPushEnabled === null ? (
+              <Bell size={20} className="bell-checking" />
+            ) : hubPushEnabled ? (
+              <Bell size={20} />
+            ) : (
+              <BellOff size={20} />
+            )}
             {hasNewAnnouncement && <span className="badge-dot" />}
           </Link>
           <a href={HUB_URL} className="appbar-home" aria-label="きづきびより ハブに戻る">

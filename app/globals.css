@@ -103,6 +103,12 @@ button {
   position: relative;
 }
 
+/* 通知のON/OFFをハブに確認している間のベル。斜線なし・半透明にして、
+   OFFと見間違えないようにする。新着ドット(.badge-dot)には影響させない。 */
+.appbar-bell svg.bell-checking {
+  opacity: 0.35;
+}
+
 /* --- お知らせ画面 --- */
 
 .badge-dot {

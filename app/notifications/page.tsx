@@ -43,7 +43,9 @@ function timeLabel(iso: string): string {
 
 function PushToggle() {
   const { uid } = useAuth();
-  const [enabled, setEnabled] = useState(false);
+  // null は「ハブに問い合わせ中」。確定するまではスイッチを押せないようにする
+  // (結果は端末に保存しないので、毎回この状態から始まる)。
+  const [enabled, setEnabled] = useState<boolean | null>(null);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -64,7 +66,7 @@ function PushToggle() {
   }, [uid]);
 
   async function handleToggle() {
-    if (!uid || saving) return;
+    if (!uid || saving || enabled === null) return;
     const next = !enabled;
     setSaving(true);
     setMessage(null);
@@ -104,8 +106,9 @@ function PushToggle() {
             type="button"
             className={`switch ${enabled ? "on" : ""}`}
             role="switch"
-            aria-checked={enabled}
-            disabled={!uid || saving}
+            aria-checked={enabled === true}
+            aria-busy={enabled === null}
+            disabled={!uid || saving || enabled === null}
             onClick={handleToggle}
           />
         </div>
