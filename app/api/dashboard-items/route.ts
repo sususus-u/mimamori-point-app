@@ -19,6 +19,7 @@ function daysBetween(from: Date, to: Date): number {
 }
 
 export async function GET(req: NextRequest) {
+  const startedAt = Date.now();
   const dashboardKey = req.headers.get("x-dashboard-key");
   if (!dashboardKey || dashboardKey !== process.env.DASHBOARD_API_KEY) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401, headers: NO_STORE });
@@ -45,6 +46,9 @@ export async function GET(req: NextRequest) {
     .filter((item) => item.daysRemaining >= 0)
     .sort((a, b) => a.daysRemaining - b.daysRemaining)
     .slice(0, 3);
+
+  // 速さを確かめるため、処理時間だけをログに残す(口座名や件数などの中身は出さない)
+  console.log("dashboard-items の処理時間", JSON.stringify({ durationMs: Date.now() - startedAt }));
 
   return NextResponse.json({ items }, { headers: NO_STORE });
 }
