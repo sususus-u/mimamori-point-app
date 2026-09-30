@@ -30,6 +30,10 @@ export async function GET(req: NextRequest) {
 
   let sentCount = 0;
   let skippedCount = 0;
+  // 端末ごとの送信失敗は例外にならないため、件数とエラーコードだけを集計してログに残す
+  // (トークンや通知本文はログに含めない)
+  let failureCount = 0;
+  const failureCodes: Record<string, number> = {};
 
   for (const accountDoc of accountsSnap.docs) {
     const account = accountDoc.data() as AccountDoc;
@@ -67,7 +71,7 @@ export async function GET(req: NextRequest) {
         : `${account.name}、期限まであと${daysUntilExpiry}日です`;
 
     try {
-      await adminMessaging.sendEachForMulticast({
+      const result = await adminMessaging.sendEachForMulticast({
         tokens,
         notification: {
           title: "気づき通知",
@@ -80,6 +84,12 @@ export async function GET(req: NextRequest) {
         },
       });
       sentCount++;
+      failureCount += result.failureCount;
+      for (const response of result.responses) {
+        if (response.success) continue;
+        const code = response.error?.code ?? "unknown";
+        failureCodes[code] = (failureCodes[code] ?? 0) + 1;
+      }
 
       await accountDoc.ref.update(
         stage === "first"
@@ -89,6 +99,13 @@ export async function GET(req: NextRequest) {
     } catch (error) {
       console.error(`通知送信に失敗しました(accountId: ${accountDoc.id})`, error);
     }
+  }
+
+  const summary = { failureCount, failureCodes };
+  if (failureCount > 0) {
+    console.warn("通知送信の結果(失敗あり)", JSON.stringify(summary));
+  } else {
+    console.log("通知送信の結果", JSON.stringify(summary));
   }
 
   return NextResponse.json({ sentCount, skippedCount, checkedAt: today.toISOString() });
