@@ -31,6 +31,7 @@ export async function GET(req: NextRequest) {
   let sentCount = 0;
   let skippedCount = 0;
   // 端末ごとの送信失敗は例外にならないため、件数とエラーコードだけを集計してログに残す
+  // (あわせて所要時間 durationMs も残す)
   // (トークンや通知本文はログに含めない)
   let failureCount = 0;
   const failureCodes: Record<string, number> = {};
@@ -101,7 +102,7 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  const summary = { failureCount, failureCodes };
+  const summary = { failureCount, failureCodes, durationMs: Date.now() - today.getTime() };
   if (failureCount > 0) {
     console.warn("通知送信の結果(失敗あり)", JSON.stringify(summary));
   } else {
