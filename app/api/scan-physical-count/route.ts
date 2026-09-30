@@ -3,8 +3,11 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
+import { guardAiRead } from "@/lib/usageLimit";
 
 export async function POST(req: NextRequest) {
+  // AI読み取りの回数を1つ使ったあとで失敗したときに、その1回分を戻すための関数。
+  let refund: (() => Promise<void>) | null = null;
   try {
     const { imageBase64, mediaType } = await req.json();
     if (!imageBase64) {
@@ -18,6 +21,11 @@ export async function POST(req: NextRequest) {
         { status: 500 }
       );
     }
+
+    // 入力が正しいときだけ、アカウントごとの1日の回数を1つ使う(上限なら429を返し、AIは呼ばない)。
+    const guard = await guardAiRead(req.headers.get("authorization"));
+    if (!guard.ok) return guard.response;
+    refund = guard.refund;
 
     const anthropic = new Anthropic({ apiKey });
 
@@ -69,6 +77,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(parsed);
   } catch (error) {
     console.error(error);
+    // AIの呼び出しや結果の読み取りで失敗した分は、回数に含めない
+    await refund?.();
     return NextResponse.json({ error: "読み取りに失敗しました" }, { status: 500 });
   }
 }

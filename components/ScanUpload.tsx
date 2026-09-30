@@ -9,6 +9,7 @@ import { useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Lightbulb } from "lucide-react";
+import { authFetch } from "@/lib/authFetch";
 import {
   collection,
   query,
@@ -111,7 +112,9 @@ export default function ScanUpload() {
       const base64 = await fileToBase64(file);
 
       setStatusMessage("画像を読み取っています...");
-      const res = await fetch("/api/scan-account", {
+      // 1日の回数をアカウントごとに数えるため、本人のIDトークンを付けて送る。
+      // 上限に達した場合は、サーバーからの案内文(data.error)をそのまま表示する。
+      const res = await authFetch("/api/scan-account", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ imageBase64: base64, mediaType: file.type }),

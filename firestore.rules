@@ -47,5 +47,15 @@ service cloud.firestore {
       allow update: if isOwner(resource.data.ownerId) && ownerIdUnchanged();
       allow create: if isOwner(request.resource.data.ownerId);
     }
+
+    // --- usage_counts_tamari/{uid}_{日本時間の日付} ------------------------
+    // AI読み取りの1日あたりの利用回数。数えるのはサーバー側(Admin SDKはこのルールを
+    // 経由しない)だけで、画面からは誰も書き込めない。読めるのは、中に記録された
+    // uidが自分と一致する1件だけ。一覧は誰も読めない。
+    // (姉妹アプリの usage_counts_mamori / usage_counts_tabe と重ならないよう名前を分けている)
+    match /usage_counts_tamari/{docId} {
+      allow get: if isSignedIn() && resource.data.uid == request.auth.uid;
+      allow list, write: if false;
+    }
   }
 }

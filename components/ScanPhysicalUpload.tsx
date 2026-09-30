@@ -6,6 +6,7 @@
 
 import { useEffect, useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
+import { authFetch } from "@/lib/authFetch";
 import {
   collection,
   query,
@@ -79,15 +80,17 @@ export default function ScanPhysicalUpload() {
     setExistingQuantity(null);
 
     try {
-      const res = await fetch("/api/scan-physical-count", {
+      // 1日の回数をアカウントごとに数えるため、本人のIDトークンを付けて送る。
+      const res = await authFetch("/api/scan-physical-count", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ imageBase64: base64, mediaType }),
       });
-      const data: ScanResult = await res.json();
+      const data: ScanResult & { error?: string } = await res.json();
 
       if (!res.ok) {
-        throw new Error("読み取りに失敗しました");
+        // 上限に達した場合などは、サーバーからの案内文をそのまま表示する
+        throw new Error(data.error || "読み取りに失敗しました");
       }
 
       setName(data.name ?? "");
