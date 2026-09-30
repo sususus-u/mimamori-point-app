@@ -122,6 +122,14 @@ button {
   border: 1.5px solid #fff;
 }
 
+/* お知らせ画面のタブ名の横に添える新着ドット。色・大きさはベルのものと揃える。 */
+.badge-dot.inline {
+  position: static;
+  display: inline-block;
+  margin-left: 4px;
+  vertical-align: middle;
+}
+
 .loading-state,
 .empty-state {
   text-align: center;

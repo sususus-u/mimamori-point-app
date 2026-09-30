@@ -6,7 +6,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { Wallet, Plus, Menu, LayoutGrid, Bell, BellOff } from "lucide-react";
 import { doc, onSnapshot, type Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -24,6 +24,13 @@ const SCREEN_TITLES: Record<string, string> = {
   "/reports": "実績",
   "/notifications": "お知らせ",
 };
+
+// ベルの新着ドットと同じ判定を、お知らせ画面のタブの新着ドットでも使えるよう共有する。
+const NewAnnouncementContext = createContext(false);
+
+export function useHasNewAnnouncement(): boolean {
+  return useContext(NewAnnouncementContext);
+}
 
 function getTitle(pathname: string): string {
   if (SCREEN_TITLES[pathname]) return SCREEN_TITLES[pathname];
@@ -153,7 +160,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      <main className="scroll">{children}</main>
+      <main className="scroll">
+        <NewAnnouncementContext.Provider value={hasNewAnnouncement}>{children}</NewAnnouncementContext.Provider>
+      </main>
 
       <nav className="tabbar">
         {tabs.map((tab) => {

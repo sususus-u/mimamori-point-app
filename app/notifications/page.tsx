@@ -14,6 +14,7 @@ import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthProvider";
 import { authFetch } from "@/lib/authFetch";
+import { useHasNewAnnouncement } from "@/components/AppShell";
 
 interface Announcement {
   id: string;
@@ -186,6 +187,9 @@ function HubAnnouncements() {
 
 export default function NotificationsPage() {
   const [tab, setTab] = useState<"personal" | "hub">("personal");
+  // ベルの新着ドットと同じ判定。「運営からのお知らせ」タブを開くと既読の日時が記録され、消える。
+  // 「あなたへのお知らせ」は個人向けお知らせ機能自体がまだないため、点は出さない。
+  const hasNewAnnouncement = useHasNewAnnouncement();
 
   return (
     <div>
@@ -205,6 +209,7 @@ export default function NotificationsPage() {
           onClick={() => setTab("hub")}
         >
           運営からのお知らせ
+          {hasNewAnnouncement && <span className="badge-dot inline" role="img" aria-label="新着あり" />}
         </button>
       </div>
 
