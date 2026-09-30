@@ -12,6 +12,8 @@ import { doc, onSnapshot, type Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthProvider";
 import { authFetch } from "@/lib/authFetch";
+import type { Announcement } from "@/lib/announcements";
+import { useDismissedAnnouncementIds } from "@/lib/dismissedAnnouncements";
 
 const HUB_URL = "https://okizukibiyori.com/";
 
@@ -23,6 +25,7 @@ const SCREEN_TITLES: Record<string, string> = {
   "/menu": "メニュー",
   "/reports": "実績",
   "/notifications": "お知らせ",
+  "/notifications/all": "過去のお知らせ",
 };
 
 // ベルの新着ドットと同じ判定を、お知らせ画面のタブの新着ドットでも使えるよう共有する。
@@ -87,37 +90,43 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     return () => unsubscribe();
   }, [uid]);
 
-  // 運営からのお知らせの最新公開日時。ハブ側のannouncementsはFirestoreの直接
+  // 運営からのお知らせの一覧。ハブ側のannouncementsはFirestoreの直接
   // 購読ができない(DASHBOARD_API_KEY経由のサーバー中継のため)ので、
   // ベルの新着ドット判定用にここで一度だけ取得する。
-  const [latestAnnouncementAt, setLatestAnnouncementAt] = useState<string | null>(null);
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   useEffect(() => {
     if (!uid) {
-      setLatestAnnouncementAt(null);
+      setAnnouncements([]);
       return;
     }
     let cancelled = false;
     fetch("/api/announcements")
       .then((r) => (r.ok ? r.json() : { announcements: [] }))
       .then((data) => {
-        if (cancelled) return;
-        const list = Array.isArray(data.announcements) ? data.announcements : [];
-        setLatestAnnouncementAt(list.length > 0 ? list[0].publishedAt : null);
+        if (!cancelled) setAnnouncements(Array.isArray(data.announcements) ? data.announcements : []);
       })
       .catch(() => {
-        if (!cancelled) setLatestAnnouncementAt(null);
+        if (!cancelled) setAnnouncements([]);
       });
     return () => {
       cancelled = true;
     };
   }, [uid]);
 
+  // 利用者が自分の画面から消したお知らせは、新着ドットの対象から外す。
+  const dismissedIds = useDismissedAnnouncementIds();
+  const latestAnnouncementMs = announcements
+    .filter((a) => !dismissedIds.includes(a.id))
+    .reduce<number | null>((max, a) => {
+      const ms = new Date(a.publishedAt).getTime();
+      return max === null || ms > max ? ms : max;
+    }, null);
+
   // 新着があれば、通知のON/OFFに関わらずベルの右上に点を表示する
   // (通知がOFFでも新着があれば点は表示し、状態を正直に伝える)。
   const hasNewAnnouncement =
-    latestAnnouncementAt !== null &&
-    (!announcementsSeenAt ||
-      new Date(latestAnnouncementAt).getTime() > announcementsSeenAt.toMillis());
+    latestAnnouncementMs !== null &&
+    (!announcementsSeenAt || latestAnnouncementMs > announcementsSeenAt.toMillis());
 
   const tabs = [
     { href: "/", label: "一覧", icon: Wallet, active: pathname === "/" },

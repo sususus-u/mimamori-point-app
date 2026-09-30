@@ -8,39 +8,18 @@
 // ないため、当面は固定文言のみを表示する。
 // 「運営からのお知らせ」は、ハブの GET /api/announcements を
 // /api/announcements 経由(サーバー中継)で問い合わせて表示する。
+// 利用者は選んだお知らせを自分の画面から消せる(端末にだけ記録し、サーバーは変えない)。
+// 消したものも含めたすべては「過去のお知らせ」(/notifications/all)で見られる。
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthProvider";
 import { authFetch } from "@/lib/authFetch";
 import { useHasNewAnnouncement } from "@/components/AppShell";
-
-interface Announcement {
-  id: string;
-  title: string;
-  body: string;
-  publishedAt: string;
-}
-
-function timeLabel(iso: string): string {
-  const date = new Date(iso);
-  const now = new Date();
-  const sameDay =
-    date.getFullYear() === now.getFullYear() &&
-    date.getMonth() === now.getMonth() &&
-    date.getDate() === now.getDate();
-  if (sameDay) {
-    return `今日 ${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
-  }
-  const diffDays = Math.floor(
-    (new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime() -
-      new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime()) /
-      86_400_000,
-  );
-  if (diffDays >= 0 && diffDays < 7) return `${diffDays}日前`;
-  return `${date.getMonth() + 1}月${date.getDate()}日`;
-}
+import { timeLabel, useAnnouncements } from "@/lib/announcements";
+import { dismissAnnouncements, useDismissedAnnouncementIds } from "@/lib/dismissedAnnouncements";
 
 function PushToggle() {
   const { uid } = useAuth();
@@ -127,26 +106,31 @@ function PersonalNotifications() {
   );
 }
 
+function PastAnnouncementsLink() {
+  return (
+    <Link href="/notifications/all" className="past-announcements-link">
+      過去のお知らせ →
+    </Link>
+  );
+}
+
 function HubAnnouncements() {
   const { uid } = useAuth();
-  const [announcements, setAnnouncements] = useState<Announcement[] | null>(null);
+  const announcements = useAnnouncements();
+  // 利用者が自分の画面から消したもの。この一覧からは外す(サーバー側は変えない)。
+  const dismissedIds = useDismissedAnnouncementIds();
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [showConfirm, setShowConfirm] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
-    fetch("/api/announcements")
-      .then((res) => res.json())
-      .then((data) => {
-        if (!cancelled) {
-          setAnnouncements(Array.isArray(data.announcements) ? data.announcements : []);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setAnnouncements([]);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  function toggleSelected(id: string) {
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id]));
+  }
+
+  function handleDismiss() {
+    dismissAnnouncements(selectedIds);
+    setSelectedIds([]);
+    setShowConfirm(false);
+  }
 
   // このタブを開いた時点で最新のお知らせを見たとみなし、既読相当の日時を記録する
   // (ヘッダーのベルの新着ドット判定に使う。AppShell側でこのドキュメントを
@@ -162,25 +146,77 @@ function HubAnnouncements() {
     return <div className="loading-state">読み込み中…</div>;
   }
 
-  if (announcements.length === 0) {
+  const visible = announcements.filter((a) => !dismissedIds.includes(a.id));
+
+  if (visible.length === 0) {
     return (
-      <div className="empty-state">
-        <p>運営からのお知らせは、まだありません</p>
-      </div>
+      <>
+        <div className="empty-state">
+          <p>
+            {announcements.length === 0
+              ? "運営からのお知らせは、まだありません"
+              : "表示中のお知らせは、ありません"}
+          </p>
+        </div>
+        {announcements.length > 0 && <PastAnnouncementsLink />}
+      </>
     );
   }
 
+  // 画面に出ていないもの(消した直後など)は数えない。
+  const selectedCount = selectedIds.filter((id) => visible.some((a) => a.id === id)).length;
+
   return (
     <>
-      {announcements.map((a) => (
-        <div className="notif-card announcement-card" key={a.id}>
+      <div className="announcement-toolbar">
+        <button
+          type="button"
+          className="announcement-dismiss-btn"
+          disabled={selectedCount === 0}
+          onClick={() => setShowConfirm(true)}
+        >
+          選んだお知らせを消す{selectedCount > 0 ? `(${selectedCount}件)` : ""}
+        </button>
+      </div>
+
+      {visible.map((a) => (
+        <label className="notif-card announcement-card selectable" key={a.id}>
+          <input
+            type="checkbox"
+            className="announcement-check"
+            checked={selectedIds.includes(a.id)}
+            onChange={() => toggleSelected(a.id)}
+            aria-label={`「${a.title}」を選ぶ`}
+          />
           <div className="notif-body">
             <div className="notif-title">{a.title}</div>
             <div className="notif-desc">{a.body}</div>
             <div className="notif-time">{timeLabel(a.publishedAt)}</div>
           </div>
-        </div>
+        </label>
       ))}
+
+      <PastAnnouncementsLink />
+
+      {showConfirm && (
+        <div className="modal-backdrop">
+          <div className="modal-sheet" role="dialog" aria-modal="true">
+            <p>
+              選んだ{selectedCount}件のお知らせを、この一覧から消します。
+              <strong>消したあとは、元に戻せません。</strong>
+              「過去のお知らせ」からは、引き続き読むことができます。
+            </p>
+            <div className="modal-actions">
+              <button className="btn-danger" type="button" onClick={handleDismiss}>
+                {selectedCount}件を消す
+              </button>
+              <button className="btn-ghost" type="button" onClick={() => setShowConfirm(false)}>
+                キャンセル
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
