@@ -25,6 +25,15 @@ export const auth = getAuth(app);
 // そのまま使われてカスタムトークンでのログインが素通りされる競合状態が起きるため、
 // モジュール読み込み時点(=このファイルがimportされた瞬間)で即座に処理を開始し、
 // 他の場所(AuthProviderのonAuthStateChanged購読)はこのPromiseを必ず待ってから動く。
+//
+// 引き継ぎに失敗しても、匿名ログインにはしない(アプリは案内の画面で止まる)。
+// 失敗の印はメモリ上だけに持つ(authToken はアドレスから消すので、再読み込みでは残らない)。
+let customTokenHandoffFailed = false;
+
+export function hasCustomTokenHandoffFailed(): boolean {
+  return customTokenHandoffFailed;
+}
+
 export const customTokenSignInReady: Promise<void> = (async () => {
   if (typeof window === "undefined") return;
 
@@ -35,6 +44,7 @@ export const customTokenSignInReady: Promise<void> = (async () => {
   try {
     await signInWithCustomToken(auth, token);
   } catch (error) {
+    customTokenHandoffFailed = true;
     console.error("カスタムトークンでのログインに失敗しました", error);
   } finally {
     // 成否によらず、URLからauthTokenパラメータを消しておく

@@ -91,7 +91,7 @@ export type InputSource =
 // ---------------------------------------------------------------------------
 
 export interface UserDoc {
-  /** Firebase Anonymous Auth の UID (ドキュメントIDと同一) */
+  /** ハブのログインで引き継いだ Firebase Auth の UID (ドキュメントIDと同一) */
   uid: string;
   createdAt: Timestamp;
   /** 種類ごとの通知タイミングのユーザー全体デフォルト上書き(任意) */

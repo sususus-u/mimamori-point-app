@@ -7,11 +7,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { createContext, useContext, useEffect, useState } from "react";
-import { Wallet, Plus, Menu, LayoutGrid, Bell, BellOff } from "lucide-react";
+import { Wallet, Plus, Menu, LayoutGrid, Bell, BellOff, ChevronLeft } from "lucide-react";
 import { doc, onSnapshot, type Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthProvider";
 import { authFetch } from "@/lib/authFetch";
+import LoginGuide from "@/components/LoginGuide";
 import type { Announcement } from "@/lib/announcements";
 import { useDismissedAnnouncementIds } from "@/lib/dismissedAnnouncements";
 
@@ -127,6 +128,29 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const hasNewAnnouncement =
     latestAnnouncementMs !== null &&
     (!announcementsSeenAt || latestAnnouncementMs > announcementsSeenAt.toMillis());
+
+  // ログイン状態の確認が終わるまでは、案内の画面もアプリ本体も出さない(一瞬の点滅を避ける)。
+  if (isLoading) return <div className="app-shell" />;
+
+  // 未ログイン: ヘッダー・タブ・ベル・本文は出さず、案内の画面だけを出す。
+  // ただしメニューは、規約などを読めるよう、ログイン前でも見られる(ベルとタブは付けない)。
+  if (!uid) {
+    if (pathname !== "/menu") return <LoginGuide />;
+    return (
+      <div className="app-shell">
+        <header className="appbar">
+          <div>
+            <p className="appbar-brand">たまりびより</p>
+            <h1 className="appbar-title">{getTitle(pathname)}</h1>
+          </div>
+          <Link href="/" className="appbar-home" aria-label="ログイン案内に戻る">
+            <ChevronLeft size={20} />
+          </Link>
+        </header>
+        <main className="scroll">{children}</main>
+      </div>
+    );
+  }
 
   const tabs = [
     { href: "/", label: "一覧", icon: Wallet, active: pathname === "/" },
