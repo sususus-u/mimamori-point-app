@@ -7,6 +7,7 @@
 
 import {
   createContext,
+  useRef,
   useContext,
   useEffect,
   useState,
@@ -15,6 +16,7 @@ import {
 import { onAuthStateChanged, signOut, type User } from "firebase/auth";
 import { auth, customTokenSignInReady, hasCustomTokenHandoffFailed } from "@/lib/firebase";
 import { resetHubLoginCount } from "@/lib/hubLogin";
+import { clearUserLocalData } from "@/lib/clearUserData";
 
 interface AuthContextValue {
   /** ログイン状態の確認が終わるまで true。読み込み中の表示に使う */
@@ -35,6 +37,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [uid, setUid] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [handoffFailed, setHandoffFailed] = useState(false);
+  // ログイン済みだったか。ログイン済み → 未ログインに変わった時だけ、端末のデータを消すために使う
+  const wasLoggedInRef = useRef(false);
 
   useEffect(() => {
     let unsubscribe: (() => void) | undefined;
@@ -50,6 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       unsubscribe = onAuthStateChanged(auth, async (user: User | null) => {
         if (user && !user.isAnonymous) {
           resetHubLoginCount();
+          wasLoggedInRef.current = true;
           setUid(user.uid);
           setIsLoading(false);
           return;
@@ -57,6 +62,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // ログイン中の人がいない、または端末に古い匿名ログインが残っていた場合は、
         // 未ログインとして扱う。匿名ユーザーは、サインアウトして残さない。
         setUid(null);
+        // ログイン中に未ログインへ変わった(ハブ側の取り消しでログインが失効した場合など)ときは、
+        // 次の人に引き継がないよう、端末のユーザー固有のデータを消す。起動時の未ログインでは消さない。
+        // 手動のログアウト(LogoutButton)でも消すが、同じキーを消すだけなので二重に走っても問題ない。
+        if (wasLoggedInRef.current) {
+          wasLoggedInRef.current = false;
+          clearUserLocalData();
+        }
         if (user) {
           try {
             await signOut(auth);
