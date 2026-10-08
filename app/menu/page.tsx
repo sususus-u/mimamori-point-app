@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { BarChart3, ChevronRight, ExternalLink, FileText, User } from "lucide-react";
 import AccountSettings from "@/components/AccountSettings";
+import LogoutButton from "@/components/LogoutButton";
 
 const HUB_TERMS_URL = "https://okizukibiyori.com/terms#たまりびより";
 const HUB_PRIVACY_URL = "https://okizukibiyori.com/privacy#たまりびより";
@@ -45,6 +46,7 @@ export default function MenuPage() {
           <div style={{ flex: 1 }}>
             <p style={{ fontSize: 14, fontWeight: 500, marginBottom: 4 }}>アカウント</p>
             <AccountSettings />
+            <LogoutButton />
           </div>
         </div>
 
