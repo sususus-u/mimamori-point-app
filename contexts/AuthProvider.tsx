@@ -14,7 +14,12 @@ import {
   type ReactNode,
 } from "react";
 import { onAuthStateChanged, signOut, type User } from "firebase/auth";
-import { auth, customTokenSignInReady, hasCustomTokenHandoffFailed } from "@/lib/firebase";
+import {
+  auth,
+  customTokenSignInReady,
+  hasCustomTokenHandoffFailed,
+  removeAuthTokenFromUrl,
+} from "@/lib/firebase";
 import { resetHubLoginCount } from "@/lib/hubLogin";
 import { clearUserLocalData } from "@/lib/clearUserData";
 
@@ -49,6 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // 購読してしまうと、永続化復元で残っていた古いユーザーを先に見てしまう
     // 競合状態が起きるため。
     customTokenSignInReady.then(() => {
+      removeAuthTokenFromUrl();
       if (cancelled) return;
       setHandoffFailed(hasCustomTokenHandoffFailed());
       unsubscribe = onAuthStateChanged(auth, async (user: User | null) => {

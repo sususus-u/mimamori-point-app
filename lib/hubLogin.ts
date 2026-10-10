@@ -4,6 +4,8 @@
 // ログイン後、ハブは return のURLに ?authToken= を付けて戻す。
 // return には ?authToken= を含めない(含めるとハブ側で許可されない)。
 
+import { stripAuthToken } from "@/lib/authToken";
+
 const HUB_LOGIN_URL = "https://okizukibiyori.com/login";
 
 // 1回の起動(タブ)でハブへ移動した回数。sessionStorage はタブごとに別なので、
@@ -13,9 +15,7 @@ const MAX_REDIRECTS_PER_SESSION = 1;
 
 /** return に入れる今のURL。authToken は必ず外す */
 export function buildHubLoginUrl(currentHref: string): string {
-  const back = new URL(currentHref);
-  back.searchParams.delete("authToken");
-  return `${HUB_LOGIN_URL}?return=${encodeURIComponent(back.toString())}`;
+  return `${HUB_LOGIN_URL}?return=${encodeURIComponent(stripAuthToken(currentHref))}`;
 }
 
 function readCount(): number {

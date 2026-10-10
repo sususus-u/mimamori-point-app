@@ -4,6 +4,7 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAuth, signInWithCustomToken } from "firebase/auth";
+import { extractAuthToken } from "@/lib/authToken";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -18,7 +19,7 @@ export const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 export const auth = getAuth(app);
 
-// ハブ(okizukibiyori.com)からURLに ?authToken=xxx が付与されて遷移してきた場合、
+// ハブ(okizukibiyori.com)からURLに ?authToken=xxx または #authToken=xxx(こちらを優先)が付与されて遷移してきた場合、
 // そのカスタムトークンでログインする。
 //
 // auth.currentUserの永続化復元(非同期)が先に終わってしまうと、既存の匿名ユーザーが
@@ -34,21 +35,35 @@ export function hasCustomTokenHandoffFailed(): boolean {
   return customTokenHandoffFailed;
 }
 
+// アドレスから authToken(クエリ・フラグメント)を消す。ほかの部分は残す。
+// Next.js が読み込み後にアドレスを書き戻すことがあるため、AuthProvider からも呼び直す。
+export function removeAuthTokenFromUrl(): void {
+  if (typeof window === "undefined") return;
+  const { cleanedPath } = extractAuthToken(window.location.href);
+  if (cleanedPath !== window.location.pathname + window.location.search + window.location.hash) {
+    window.history.replaceState(null, "", cleanedPath);
+  }
+}
+
 export const customTokenSignInReady: Promise<void> = (async () => {
   if (typeof window === "undefined") return;
 
-  const url = new URL(window.location.href);
-  const token = url.searchParams.get("authToken");
+  // 読んだらすぐ、アドレスから消す(クエリもフラグメントも。成否を待たない)
+  const { token, rejected } = extractAuthToken(window.location.href);
+  removeAuthTokenFromUrl();
+  if (rejected) {
+    customTokenHandoffFailed = true;
+    console.error("カスタムトークンが長すぎるため、ログインを行いませんでした");
+    return;
+  }
   if (!token) return;
 
   try {
     await signInWithCustomToken(auth, token);
   } catch (error) {
     customTokenHandoffFailed = true;
-    console.error("カスタムトークンでのログインに失敗しました", error);
-  } finally {
-    // 成否によらず、URLからauthTokenパラメータを消しておく
-    url.searchParams.delete("authToken");
-    window.history.replaceState(null, "", url.pathname + url.search + url.hash);
+    // トークンを含みうるため、エラーの中身は出さず、コードだけ残す
+    const code = (error as { code?: string } | null)?.code ?? "unknown";
+    console.error("カスタムトークンでのログインに失敗しました:", code);
   }
 })();
