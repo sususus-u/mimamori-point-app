@@ -425,7 +425,7 @@ export default function ScanUpload() {
                   }`}
                 />
                 {item.balanceLowConfidence && (
-                  <p className="text-xs text-amber-600 mt-1">読み取りに自信が持てませんでした。確認してください</p>
+                  <p className="text-xs text-amber-600 mt-1">読み取りに自信が持てませんでした。画像と見比べて、残高を確認してください。</p>
                 )}
                 {item.balanceNegative && (
                   <p className="text-xs text-amber-600 mt-1">
@@ -455,7 +455,7 @@ export default function ScanUpload() {
                 }`}
               />
               {item.expiryLowConfidence && (
-                <p className="text-xs text-amber-600 mt-1">読み取りに自信が持てませんでした。確認してください</p>
+                <p className="text-xs text-amber-600 mt-1">読み取りに自信が持てませんでした。画像と見比べて、期限を確認してください。</p>
               )}
             </div>
           </div>

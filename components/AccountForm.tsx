@@ -932,7 +932,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
               />
               {balanceLowConfidence && (
                 <p style={{ fontSize: 12, color: "#b56a1e", marginTop: 4 }}>
-                  読み取りに自信が持てませんでした。確認してください
+                  読み取りに自信が持てませんでした。画像と見比べて、残高を確認してください。
                 </p>
               )}
             </div>
@@ -1089,7 +1089,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
             />
             {expiryLowConfidence && (
               <p style={{ fontSize: 12, color: "#b56a1e", marginTop: 4 }}>
-                読み取りに自信が持てませんでした。確認してください
+                読み取りに自信が持てませんでした。画像と見比べて、期限を確認してください。
               </p>
             )}
             <p style={{ fontSize: 13, color: "#999", marginTop: 6 }}>
